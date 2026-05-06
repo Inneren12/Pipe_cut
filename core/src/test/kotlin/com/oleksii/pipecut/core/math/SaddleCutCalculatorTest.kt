@@ -325,4 +325,48 @@ class SaddleCutCalculatorTest {
         // Sanity: invariant assertion to silence unused-import warnings.
         assertNotEquals("", message)
     }
+
+    @Test
+    fun `rejects saddle request with non-zero cut tilt`() {
+        val req = CutRequest(
+            pipe = PipeSpec(diameterMm = 100.0),
+            cut = CutPlane(tiltDeg = 5.0, clockingDeg = 0.0, offsetMm = 200.0),
+            saddle = SaddleSpec(
+                partnerDiameterMm = 200.0,
+                intersectionAngleDeg = 90.0,
+                clockingDeg = 0.0,
+                offsetMm = 0.0,
+            ),
+            pointCount = PointCount.P36,
+        )
+        val ex = assertThrows<IllegalArgumentException> {
+            SaddleCutCalculator.calculate(req)
+        }
+        assertTrue(
+            ex.message!!.contains("tiltDeg", ignoreCase = false),
+            "message must mention tiltDeg, was: ${ex.message}",
+        )
+    }
+
+    @Test
+    fun `rejects saddle request with non-zero cut clocking`() {
+        val req = CutRequest(
+            pipe = PipeSpec(diameterMm = 100.0),
+            cut = CutPlane(tiltDeg = 0.0, clockingDeg = 12.0, offsetMm = 200.0),
+            saddle = SaddleSpec(
+                partnerDiameterMm = 200.0,
+                intersectionAngleDeg = 90.0,
+                clockingDeg = 0.0,
+                offsetMm = 0.0,
+            ),
+            pointCount = PointCount.P36,
+        )
+        val ex = assertThrows<IllegalArgumentException> {
+            SaddleCutCalculator.calculate(req)
+        }
+        assertTrue(
+            ex.message!!.contains("clockingDeg", ignoreCase = false),
+            "message must mention clockingDeg, was: ${ex.message}",
+        )
+    }
 }

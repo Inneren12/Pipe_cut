@@ -47,6 +47,19 @@ object SaddleCutCalculator : CutCalculator {
             is Validated.Valid -> Unit
         }
 
+        // PR5 saddle calculator does not implement combined plane-trim
+        // geometry. If the user wants a tilted/clocked plane on top of a
+        // saddle, that is a separate calculator and a separate model decision.
+        // Until then, fail loudly instead of silently dropping the parameters.
+        require(request.cut.tiltDeg == 0.0) {
+            "SaddleCutCalculator currently supports only pure saddle cuts: " +
+                "cut.tiltDeg must be 0 for saddle requests, got ${request.cut.tiltDeg}."
+        }
+        require(request.cut.clockingDeg == 0.0) {
+            "SaddleCutCalculator currently supports only pure saddle cuts: " +
+                "cut.clockingDeg must be 0 for saddle requests, got ${request.cut.clockingDeg}."
+        }
+
         val r1 = request.pipe.radiusMm
         val r2 = saddle.partnerDiameterMm / 2.0
         val thetaRad = Math.toRadians(saddle.intersectionAngleDeg)
