@@ -314,4 +314,38 @@ class CutRequestValidatorTest {
         assertEquals(1, result.errors.size)
         assertTrue(result.errors.single() is ValidationError.DiameterMustBePositive)
     }
+
+    @Test
+    fun `rejects non-finite cut request values across every Double field`() {
+        val req = request(
+            pipe = PipeSpec(diameterMm = Double.NaN),
+            cut = CutPlane(
+                tiltDeg = Double.POSITIVE_INFINITY,
+                clockingDeg = Double.NaN,
+                offsetMm = Double.NEGATIVE_INFINITY,
+            ),
+            saddle = SaddleSpec(
+                partnerDiameterMm = Double.NaN,
+                intersectionAngleDeg = Double.POSITIVE_INFINITY,
+                clockingDeg = Double.NaN,
+                offsetMm = Double.NEGATIVE_INFINITY,
+            ),
+        )
+
+        val result = CutRequestValidator.validate(req)
+        assertTrue(result is Validated.Invalid, "Expected Invalid but was $result")
+        result as Validated.Invalid
+
+        // One error per Double field — eight in total.
+        assertEquals(8, result.errors.size, "Got: ${result.errors}")
+
+        assertTrue(result.errors.any { it is ValidationError.DiameterMustBePositive })
+        assertTrue(result.errors.any { it is ValidationError.TiltOutOfRange })
+        assertTrue(result.errors.any { it is ValidationError.ClockingOutOfRange })
+        assertTrue(result.errors.any { it is ValidationError.CutOffsetNegative })
+        assertTrue(result.errors.any { it is ValidationError.PartnerDiameterMustBePositive })
+        assertTrue(result.errors.any { it is ValidationError.IntersectionAngleOutOfRange })
+        assertTrue(result.errors.any { it is ValidationError.SaddleClockingOutOfRange })
+        assertTrue(result.errors.any { it is ValidationError.SaddleOffsetNegative })
+    }
 }

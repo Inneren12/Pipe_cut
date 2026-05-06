@@ -162,4 +162,28 @@ class DevelopmentValidatorTest {
         )
         assertEquals(4, result.errors.size, "Got: ${result.errors}")
     }
+
+    @Test
+    fun `rejects non-finite phi and length`() {
+        val dev = Development(
+            listOf(
+                DevPoint(phiDeg = Double.NaN, lengthMm = 10.0),
+                DevPoint(phiDeg = 30.0, lengthMm = Double.NaN),
+                DevPoint(phiDeg = Double.POSITIVE_INFINITY, lengthMm = 10.0),
+                DevPoint(phiDeg = 90.0, lengthMm = Double.NEGATIVE_INFINITY),
+            )
+        )
+
+        val result = DevelopmentValidator.validate(dev)
+        assertTrue(result is Validated.Invalid, "Expected Invalid but was $result")
+        result as Validated.Invalid
+
+        val phiErrors = result.errors.filterIsInstance<ValidationError.DevPointPhiOutOfRange>()
+        val lenErrors = result.errors.filterIsInstance<ValidationError.DevPointLengthNegative>()
+
+        assertTrue(phiErrors.any { it.indexInList == 0 }, "expected phi error at idx 0")
+        assertTrue(phiErrors.any { it.indexInList == 2 }, "expected phi error at idx 2")
+        assertTrue(lenErrors.any { it.indexInList == 1 }, "expected length error at idx 1")
+        assertTrue(lenErrors.any { it.indexInList == 3 }, "expected length error at idx 3")
+    }
 }
