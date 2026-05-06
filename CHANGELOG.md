@@ -6,6 +6,37 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Changed — PR6 (fixup)
+- CI now runs `:app:testDebugUnitTest` and `:core:check` so the new
+  ViewModel and string-mapping tests gate every merge.
+- `InputViewModel.lastValidRequest` is now sticky: once a valid
+  `CutRequest` is captured, subsequent invalid edits do not clear it.
+  Downstream consumers (table, canvas) can keep displaying the previous
+  result while the user is mid-edit.
+- Keyboard types corrected per field: `KeyboardType.Decimal` for
+  unsigned numeric fields, `KeyboardType.Phone` for clocking fields so
+  the minus sign is reachable.
+- `InputScreen` collects `uiState` via `collectAsStateWithLifecycle()`,
+  added `androidx.lifecycle:lifecycle-runtime-compose`.
+- CHANGELOG description corrected: Composables are not "fully stateless";
+  ephemeral dropdown expansion is local state.
+- `FieldKey.POINT_COUNT` annotated as currently un-validatable but kept
+  in the touched set for uniformity.
+
+### Added — PR6
+- Compose input form for the cut request:
+  - `InputScreen` / `InputForm` Composables with business state hoisted to
+    the `InputViewModel`; only ephemeral dropdown expansion is kept locally.
+  - `InputViewModel` exposing `uiState: StateFlow<InputUiState>` and
+    `lastValidRequest: StateFlow<CutRequest?>` for downstream PRs (table,
+    canvas) to consume.
+  - Per-field touched tracking; errors only show after the user has edited
+    a field or tapped "Calculate".
+  - Inline mapping from typed `ValidationError` variants to English strings
+    in `InputFieldStrings`.
+  - Saddle toggle with collapsible group of four saddle-only fields.
+  - Decimal separator tolerance (accepts `,` and `.`).
+- JUnit 5 wired in `:app` for ViewModel and string-mapping tests.
 ### Changed — PR4 (fixup)
 - `PlaneCutCalculator` now rejects plane-cut requests whose minimum
   generated length would be negative (`L₀ < R · tan(α)`). The cut would
