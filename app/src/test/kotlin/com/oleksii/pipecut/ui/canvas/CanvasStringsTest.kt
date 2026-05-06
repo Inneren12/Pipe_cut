@@ -4,6 +4,7 @@ import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Test
 
 class CanvasStringsTest {
+    @Suppress("DEPRECATION")
     @Test
     fun `no constant leaks PR numbers`() {
         val all = listOf(
