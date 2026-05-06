@@ -6,6 +6,29 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Changed — PR10 (fixup 2)
+- `InputScreen` pre-flights `lastValidRequest == null` (and empty /
+  over-length name) before opening the overwrite-confirm dialog.
+  Previously a confirm-overwrite with no valid request set
+  `lastSaveError = NoValidRequest` after both dialogs had already
+  closed, hiding the failure from the user.
+- `DataStorePresetsRepository.saveIfAllowed` now validates and
+  normalizes the preset name at the storage boundary: rejects empty
+  / whitespace-only / over-length names with the same typed errors
+  the ViewModel surfaces, and trims surrounding whitespace before
+  persisting. The ViewModel pre-flight stays as a UX shortcut.
+- `saveIfAllowed` self-cleans corrupt entries inside `store.edit`
+  before counting toward the duplicate / limit checks. Corrupt
+  presets used to occupy slots invisibly, eventually triggering
+  `LimitReached` on a UI showing fewer than 20 chips. The cleanup
+  is silent — user-visible recovery affordances are PR12.
+- Preset chip delete button is now a Material delete icon
+  (`Icons.Filled.Delete`) with `deleteContentDescription(name)`
+  exposed via `Modifier.semantics`. Replaces the temporary
+  `Text("✕")` shipped in fixup 1, which announced poorly on
+  TalkBack. `Icons.Filled.Delete` resolves on the existing
+  classpath; no new gradle dependency was needed.
+
 ### Changed — PR6 (fixup 2)
 - New `InputViewModel.applyPreset(preset)` atomically rewrites every
   form field, including explicit clears of all four saddle fields
