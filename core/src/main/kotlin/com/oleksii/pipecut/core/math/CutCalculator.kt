@@ -6,9 +6,8 @@ import com.oleksii.pipecut.core.model.Development
 /**
  * Strategy that turns a [CutRequest] into a [Development].
  *
- * Implementations come in later PRs:
- *  - PR4: PlaneCutCalculator (saddle = null)
- *  - PR5: SaddleCutCalculator (saddle != null)
+ * Implementations may support plane-only cuts, saddle cuts, or dispatch
+ * between both. Concrete strategies arrive in later PRs.
  */
 fun interface CutCalculator {
     fun calculate(request: CutRequest): Development

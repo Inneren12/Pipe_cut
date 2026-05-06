@@ -1,27 +1,26 @@
 package com.oleksii.pipecut.core.model
 
 /**
- * Cut plane definition.
+ * Cut plane definition relative to the cut pipe.
  *
- * The cut plane is described relative to the pipe's longitudinal axis:
+ *  - [tiltDeg]      α — angle between the cut plane and a perpendicular
+ *                       cross-section of the pipe. α = 0 means a straight
+ *                       (square) cut. α = 28° in the reference drawing.
  *
- *  - [tiltDeg]      α — tilt angle of the plane from a perpendicular cross-section
- *                       of the pipe. α = 0 means a straight (flat) cut.
- *                       α = 28° in the reference drawing.
+ *  - [clockingDeg]  β — angular direction of the plane tilt around the pipe
+ *                       axis. 0° means the tilt direction is aligned with the
+ *                       reference (top) generatrix; positive direction follows
+ *                       the same convention as [DevPoint.phiDeg]. Equivalent
+ *                       to clocking the high/low points of the developed cut
+ *                       curve around the pipe circumference. β = 12° in the
+ *                       reference drawing — this is the distinguishing feature
+ *                       this app aims to support.
  *
- *  - [rotationDeg]  β — rotation of the cut plane around its own normal.
- *                       Equivalent to rotating the major axis of the resulting
- *                       cut ellipse around the pipe axis. β = 0 means the
- *                       ellipse major axis lies in the standard tilt plane.
- *                       β = 12° in the reference drawing — this is the
- *                       distinguishing feature this app supports.
- *
- *  - [offsetMm]     L₀ — distance from the pipe end face along the pipe axis
- *                        to the centerline of the cut. Determines where on the
- *                        pipe the cut sits.
+ *  - [offsetMm]     L₀ — axial coordinate where the cut plane intersects the
+ *                        pipe axis, measured from the pipe end face.
  */
 data class CutPlane(
     val tiltDeg: Double,
-    val rotationDeg: Double,
+    val clockingDeg: Double,
     val offsetMm: Double
 )
