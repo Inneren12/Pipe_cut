@@ -6,6 +6,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added — PR6
+- Compose input form for the cut request:
+  - `InputScreen` / `InputForm` Composables, fully stateless and themed.
+  - `InputViewModel` exposing `uiState: StateFlow<InputUiState>` and
+    `lastValidRequest: StateFlow<CutRequest?>` for downstream PRs (table,
+    canvas) to consume.
+  - Per-field touched tracking; errors only show after the user has edited
+    a field or tapped "Calculate".
+  - Inline mapping from typed `ValidationError` variants to English strings
+    in `InputFieldStrings`.
+  - Saddle toggle with collapsible group of four saddle-only fields.
+  - Decimal separator tolerance (accepts `,` and `.`).
+- JUnit 5 wired in `:app` for ViewModel and string-mapping tests.
+
 ### Changed — PR3 (fixup)
 - `CutRequestValidator` and `DevelopmentValidator` now reject `Double.NaN`,
   `Double.POSITIVE_INFINITY`, and `Double.NEGATIVE_INFINITY` for every
