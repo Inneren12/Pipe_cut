@@ -12,26 +12,64 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.lifecycle.viewmodel.initializer
+import androidx.lifecycle.viewmodel.viewModelFactory
+import com.oleksii.pipecut.PipeCutApplication
+import com.oleksii.pipecut.core.model.PointCount
+import com.oleksii.pipecut.ui.presets.Preset
+import com.oleksii.pipecut.ui.presets.PresetDeleteDialog
+import com.oleksii.pipecut.ui.presets.PresetSaveDialog
+import com.oleksii.pipecut.ui.presets.PresetsStrings
+import com.oleksii.pipecut.ui.presets.presetsBar
 import com.oleksii.pipecut.ui.result.resultPanel
 import com.oleksii.pipecut.ui.vm.InputViewModel
+import com.oleksii.pipecut.ui.vm.PresetsViewModel
 import com.oleksii.pipecut.ui.vm.ResultViewModel
+import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun InputScreen(
     inputViewModel: InputViewModel = viewModel(),
     resultViewModel: ResultViewModel = viewModel(),
+    presetsViewModel: PresetsViewModel = run {
+        val app = LocalContext.current.applicationContext as PipeCutApplication
+        viewModel(
+            factory = viewModelFactory {
+                initializer { PresetsViewModel(app.presetsRepository) }
+            },
+        )
+    },
 ) {
     val state by inputViewModel.uiState.collectAsStateWithLifecycle()
     val lastValidRequest by inputViewModel.lastValidRequest.collectAsStateWithLifecycle()
     val resultState by resultViewModel.uiState.collectAsStateWithLifecycle()
+    val presets by presetsViewModel.presets.collectAsStateWithLifecycle()
+    val lastSaveError by presetsViewModel.lastSaveError.collectAsStateWithLifecycle()
 
     LaunchedEffect(lastValidRequest) {
         resultViewModel.submit(lastValidRequest)
+    }
+
+    var saveDialogOpen by remember { mutableStateOf(false) }
+    var saveName by remember { mutableStateOf("") }
+    var deleteCandidate by remember { mutableStateOf<Preset?>(null) }
+    val previousCount = remember { mutableStateOf(presets.size) }
+
+    LaunchedEffect(presets.size) {
+        if (presets.size > previousCount.value) {
+            saveDialogOpen = false
+            saveName = ""
+        }
+        previousCount.value = presets.size
     }
 
     Scaffold(
@@ -46,6 +84,16 @@ fun InputScreen(
                 .padding(innerPadding)
                 .fillMaxSize(),
         ) {
+            presetsBar(
+                presets = presets,
+                onLoad = { preset -> applyPreset(preset, inputViewModel) },
+                onSaveClicked = {
+                    saveName = ""
+                    presetsViewModel.acknowledgeError()
+                    saveDialogOpen = true
+                },
+                onDeleteRequested = { preset -> deleteCandidate = preset },
+            )
             item(key = "input-form") {
                 InputForm(
                     state = state,
@@ -66,4 +114,56 @@ fun InputScreen(
             resultPanel(resultState)
         }
     }
+
+    if (saveDialogOpen) {
+        PresetSaveDialog(
+            name = saveName,
+            onNameChange = {
+                saveName = it
+                presetsViewModel.acknowledgeError()
+            },
+            onConfirm = {
+                presetsViewModel.trySave(saveName, lastValidRequest)
+            },
+            onDismiss = {
+                saveDialogOpen = false
+                presetsViewModel.acknowledgeError()
+            },
+            errorMessage = lastSaveError?.let { PresetsStrings.message(it) },
+        )
+    }
+
+    deleteCandidate?.let { preset ->
+        PresetDeleteDialog(
+            presetName = preset.name,
+            onConfirm = {
+                presetsViewModel.delete(preset.name)
+                deleteCandidate = null
+            },
+            onDismiss = { deleteCandidate = null },
+        )
+    }
+}
+
+private fun applyPreset(preset: Preset, vm: InputViewModel) {
+    vm.onDiameterChange(formatNumber(preset.pipe.diameterMm))
+    vm.onTiltChange(formatNumber(preset.cut.tiltDeg))
+    vm.onClockingChange(formatNumber(preset.cut.clockingDeg))
+    vm.onOffsetChange(formatNumber(preset.cut.offsetMm))
+    vm.onSaddleEnabledChange(preset.saddle != null)
+    preset.saddle?.let { sad ->
+        vm.onPartnerDiameterChange(formatNumber(sad.partnerDiameterMm))
+        vm.onIntersectionAngleChange(formatNumber(sad.intersectionAngleDeg))
+        vm.onSaddleClockingChange(formatNumber(sad.clockingDeg))
+        vm.onSaddleOffsetChange(formatNumber(sad.offsetMm))
+    }
+    PointCount.entries
+        .firstOrNull { it.value == preset.pointCountValue }
+        ?.let(vm::onPointCountChange)
+    vm.onCalculateClicked()
+}
+
+private fun formatNumber(value: Double): String {
+    val s = String.format(Locale.US, "%.6f", value).trimEnd('0').trimEnd('.')
+    return if (s.isEmpty()) "0" else s
 }

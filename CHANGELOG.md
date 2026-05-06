@@ -6,6 +6,29 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added — PR10
+- Named presets in `:app/ui/presets`:
+  - `Preset` (`@Serializable`) and `CutRequest.toPreset(name)` extension.
+  - `PresetsRepository` interface and `DataStorePresetsRepository`
+    implementation backed by Jetpack DataStore Preferences.
+  - `PresetsViewModel` with `presets: StateFlow<List<Preset>>` and a
+    `trySave(name, request)` API that emits typed `PresetSaveError`
+    on validation failure (empty name, too long, duplicate, limit
+    reached, no valid request).
+  - `LazyListScope.presetsBar(...)` extension and stateless
+    `PresetSaveDialog` / `PresetDeleteDialog` Composables.
+- `InputScreen` shows the preset bar above the form. Tap a preset to
+  load it into every form field; long-press to confirm-and-delete.
+- Application-level service-locator pattern (`PipeCutApplication`)
+  wires the DataStore to the ViewModel without DI.
+- New gradle dependencies: `androidx.datastore:datastore-preferences`
+  and `org.jetbrains.kotlinx:kotlinx-serialization-json`, plus the
+  `kotlin-serialization` plugin.
+- Unit tests: `Preset` round-trip, `DataStorePresetsRepository`
+  round-trip and overwrite, `PresetsViewModel` validation matrix,
+  copy-leak guard.
+- Storage caps: max name length 40, max preset count 20.
+
 ### Changed — PR7 (fixup 2)
 - `ResultViewModel` now routes every request through
   `CutCalculatorDispatcher` (added in PR5). The previous direct
