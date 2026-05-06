@@ -6,6 +6,84 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Changed — PR10 (fixup 2)
+- `InputScreen` pre-flights `lastValidRequest == null` (and empty /
+  over-length name) before opening the overwrite-confirm dialog.
+  Previously a confirm-overwrite with no valid request set
+  `lastSaveError = NoValidRequest` after both dialogs had already
+  closed, hiding the failure from the user.
+- `DataStorePresetsRepository.saveIfAllowed` now validates and
+  normalizes the preset name at the storage boundary: rejects empty
+  / whitespace-only / over-length names with the same typed errors
+  the ViewModel surfaces, and trims surrounding whitespace before
+  persisting. The ViewModel pre-flight stays as a UX shortcut.
+- `saveIfAllowed` self-cleans corrupt entries inside `store.edit`
+  before counting toward the duplicate / limit checks. Corrupt
+  presets used to occupy slots invisibly, eventually triggering
+  `LimitReached` on a UI showing fewer than 20 chips. The cleanup
+  is silent — user-visible recovery affordances are PR12.
+- Preset chip delete button is now a Material delete icon
+  (`Icons.Filled.Delete`) with `deleteContentDescription(name)`
+  exposed via `Modifier.semantics`. Replaces the temporary
+  `Text("✕")` shipped in fixup 1, which announced poorly on
+  TalkBack. `Icons.Filled.Delete` resolves on the existing
+  classpath; no new gradle dependency was needed.
+
+### Changed — PR6 (fixup 2)
+- New `InputViewModel.applyPreset(preset)` atomically rewrites every
+  form field, including explicit clears of all four saddle fields
+  when the loaded preset has no saddle. Previously the screen called
+  the per-field setters one at a time, leaving stale saddle values
+  behind after loading a flat preset following a saddle preset.
+- `applyPreset` returns a typed `PresetLoadError?` and refuses the
+  load when `pointCountValue` does not map to a known `PointCount`.
+  Previously a hybrid load could occur silently.
+
+### Changed — PR10 (fixup)
+- `PresetsRepository` gains
+  `suspend fun saveIfAllowed(preset, maxPresets, allowOverwrite)`
+  which performs duplicate / limit checks **inside** `store.edit { ... }`,
+  closing a race against DataStore's initial-load window where
+  `presets.value` was still the empty initial value.
+- `PresetsViewModel.trySave` delegates to the repository for those
+  storage-aware checks; it still pre-flights empty/too-long/null-request
+  validation client-side.
+- Name uniqueness and sort are now case-insensitive.
+- New overwrite-confirm flow: a save attempt whose trimmed name
+  matches an existing preset case-insensitively first surfaces a
+  `"Name already exists. Overwrite?"` dialog. Confirming retries
+  with `allowOverwrite = true`.
+- Preset chips: `AssistChip(onClick = onLoad)` plus a small trailing
+  delete `IconButton`. The previous `combinedClickable` long-press
+  handling on the chip and the `LONG_PRESS_HINT` text are removed.
+- `PresetsStrings` now owns the delete-confirm and load-error
+  strings; no in-line literals in the bar.
+- `PresetsRepository.save(preset)` is `@Deprecated` (kept for the
+  pre-existing test path); removal scheduled for PR12.
+
+### Added — PR10
+- Named presets in `:app/ui/presets`:
+  - `Preset` (`@Serializable`) and `CutRequest.toPreset(name)` extension.
+  - `PresetsRepository` interface and `DataStorePresetsRepository`
+    implementation backed by Jetpack DataStore Preferences.
+  - `PresetsViewModel` with `presets: StateFlow<List<Preset>>` and a
+    `trySave(name, request)` API that emits typed `PresetSaveError`
+    on validation failure (empty name, too long, duplicate, limit
+    reached, no valid request).
+  - `LazyListScope.presetsBar(...)` extension and stateless
+    `PresetSaveDialog` / `PresetDeleteDialog` Composables.
+- `InputScreen` shows the preset bar above the form. Tap a preset to
+  load it into every form field; tap the delete icon next to a chip
+  to delete.
+- Application-level service-locator pattern (`PipeCutApplication`)
+  wires the DataStore to the ViewModel without DI.
+- New gradle dependencies: `androidx.datastore:datastore-preferences`
+  and `org.jetbrains.kotlinx:kotlinx-serialization-json`, plus the
+  `kotlin-serialization` plugin.
+- Unit tests: `Preset` round-trip, `DataStorePresetsRepository`
+  round-trip and overwrite, `PresetsViewModel` validation matrix,
+  copy-leak guard.
+- Storage caps: max name length 40, max preset count 20.
 ### Added — PR8
 - New canvas panel in `:app/ui/canvas`:
   - `DevelopmentCanvas2D` — unwrapped pipe surface with the cut line
