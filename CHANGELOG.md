@@ -6,6 +6,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added — PR2
+- Domain model in `:core/model`: PipeSpec, CutPlane, SaddleSpec, CutRequest,
+  DevPoint, Development, PointCount.
+- `CutCalculator` interface in `:core/math` (no implementation yet).
+- Unit tests covering equality, copy, and derived properties for every model.
+
+### Removed — PR2
+- Placeholder class and test from PR1.
+
 ### Added — PR1
 - Initial Gradle multi-module project (`:core`, `:app`).
 - Pure JVM `:core` module with `PipeCutCore` marker and JUnit 5 setup.
