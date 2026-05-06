@@ -6,6 +6,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Changed — PR3 (fixup)
+- `CutRequestValidator` and `DevelopmentValidator` now reject `Double.NaN`,
+  `Double.POSITIVE_INFINITY`, and `Double.NEGATIVE_INFINITY` for every
+  numeric field, using the existing error variants (no API change).
+- `Validated.invalid(errors: List<…>)` defensively copies the input list so
+  later mutations cannot break the non-empty invariant.
+- `Development.maxLengthMm` and `Development.minLengthMm` are now `Double?`
+  (via `maxOfOrNull` / `minOfOrNull`), matching the PR2 v2 spec. Empty
+  developments no longer throw on access.
+
 ### Added — PR3
 - Validation layer in `:core/validation`:
   - `Validated<T>` sealed type with `Valid` / `Invalid` (accumulating errors).
