@@ -37,6 +37,21 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   - Saddle toggle with collapsible group of four saddle-only fields.
   - Decimal separator tolerance (accepts `,` and `.`).
 - JUnit 5 wired in `:app` for ViewModel and string-mapping tests.
+### Added — PR5
+- `SaddleCutCalculator` in `:core/math`: implements `CutCalculator` for
+  the saddle case (branch pipe fitted onto a partner cylinder).
+  - Analytic solution for centered intersections (`saddle.offsetMm == 0`).
+  - Bisection-based numeric solver for eccentric intersections.
+  - Plane-specific preconditions: rejects `R₂ < R₁`, `R₁ > R₂ + e`, and
+    `L₀ < min(z(φ))`.
+- `CutCalculatorDispatcher` in `:core/math`: single entry point that
+  routes to `PlaneCutCalculator` or `SaddleCutCalculator` based on
+  `request.saddle`.
+- Reference test fixture: branch Ø114.3, main Ø914.4, θ = 62°, L₀ = 250
+  — the user's real drawing case.
+- Numeric tests for perpendicular tee, clocking, eccentric offset
+  consistency, and dispatcher routing.
+
 ### Changed — PR4 (fixup)
 - `PlaneCutCalculator` now rejects plane-cut requests whose minimum
   generated length would be negative (`L₀ < R · tan(α)`). The cut would
