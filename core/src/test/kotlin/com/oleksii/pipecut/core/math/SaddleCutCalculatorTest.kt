@@ -349,6 +349,25 @@ class SaddleCutCalculatorTest {
     }
 
     @Test
+    fun `rejects eccentric saddle when offset plus branch radius exceeds partner radius`() {
+        // r1 = 50, r2 = 60, e = 20  →  r1 + e = 70 > r2 = 60.
+        val req = saddleRequest(
+            diameterMm = 100.0,
+            partnerDiameterMm = 120.0,
+            intersectionAngleDeg = 90.0,
+            eccentricOffsetMm = 20.0,
+            cutOffsetMm = 200.0,
+        )
+        val ex = assertThrows<IllegalArgumentException> {
+            SaddleCutCalculator.calculate(req)
+        }
+        assertTrue(
+            ex.message!!.contains("full 360", ignoreCase = true),
+            "message must explain the 360° reach failure, was: ${ex.message}",
+        )
+    }
+
+    @Test
     fun `rejects saddle request with non-zero cut clocking`() {
         val req = CutRequest(
             pipe = PipeSpec(diameterMm = 100.0),

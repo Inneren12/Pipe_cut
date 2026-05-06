@@ -72,8 +72,13 @@ object SaddleCutCalculator : CutCalculator {
         require(r2 >= r1) {
             "Invalid saddle: partner radius $r2 mm must be ≥ branch radius $r1 mm."
         }
-        require(e + r2 >= r1) {
-            "Invalid saddle: eccentric offset $e mm leaves the branch outside the partner reach."
+        // For a full 360° development the entire branch must stay inside the
+        // partner's perpendicular reach. With eccentric offset e ≥ 0 (PR3
+        // validator rejects negative e) this collapses to r1 + e ≤ r2.
+        require(r1 + e <= r2) {
+            "Invalid eccentric saddle: branch radius $r1 mm plus offset $e mm " +
+                "exceeds partner radius $r2 mm; full 360° development has no " +
+                "intersection for every phi."
         }
 
         val centered = abs(e) < ECCENTRIC_TOLERANCE_MM
