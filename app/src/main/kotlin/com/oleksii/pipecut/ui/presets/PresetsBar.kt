@@ -1,24 +1,24 @@
 package com.oleksii.pipecut.ui.presets
 
-import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChip
-import androidx.compose.material3.AssistChipDefaults
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -39,7 +39,6 @@ fun LazyListScope.presetsBar(
     }
 }
 
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun PresetsBarContent(
     presets: List<Preset>,
@@ -82,24 +81,37 @@ private fun PresetsBarContent(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     items(items = presets, key = { it.name }) { preset ->
-                        AssistChip(
-                            onClick = {},
-                            label = { Text(preset.name) },
-                            modifier = Modifier.combinedClickable(
-                                onClick = { onLoad(preset) },
-                                onLongClick = { onDeleteRequested(preset) },
-                            ),
-                            colors = AssistChipDefaults.assistChipColors(),
+                        PresetChip(
+                            preset = preset,
+                            onLoad = onLoad,
+                            onDelete = onDeleteRequested,
                         )
                     }
                 }
-                Text(
-                    text = PresetsStrings.LONG_PRESS_HINT,
-                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
             }
+        }
+    }
+}
+
+@Composable
+private fun PresetChip(
+    preset: Preset,
+    onLoad: (Preset) -> Unit,
+    onDelete: (Preset) -> Unit,
+) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        AssistChip(
+            onClick = { onLoad(preset) },
+            label = { Text(preset.name) },
+        )
+        IconButton(
+            onClick = { onDelete(preset) },
+            modifier = Modifier.size(32.dp),
+        ) {
+            Text(
+                text = "✕",
+                style = MaterialTheme.typography.bodyLarge,
+            )
         }
     }
 }
@@ -148,12 +160,12 @@ fun PresetDeleteDialog(
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(text = "Delete preset \"$presetName\"?") },
+        title = { Text(text = PresetsStrings.deleteDialogTitle(presetName)) },
         confirmButton = {
-            TextButton(onClick = onConfirm) { Text("Delete") }
+            TextButton(onClick = onConfirm) { Text(PresetsStrings.DELETE_DIALOG_OK) }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Cancel") }
+            TextButton(onClick = onDismiss) { Text(PresetsStrings.DELETE_DIALOG_CANCEL) }
         },
     )
 }

@@ -4,10 +4,12 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -25,6 +27,7 @@ import androidx.lifecycle.viewmodel.viewModelFactory
 import com.oleksii.pipecut.PipeCutApplication
 import com.oleksii.pipecut.ui.presets.Preset
 import com.oleksii.pipecut.ui.presets.PresetDeleteDialog
+import com.oleksii.pipecut.ui.presets.PresetLoadError
 import com.oleksii.pipecut.ui.presets.PresetSaveDialog
 import com.oleksii.pipecut.ui.presets.PresetsStrings
 import com.oleksii.pipecut.ui.presets.presetsBar
@@ -60,12 +63,20 @@ fun InputScreen(
     var saveDialogOpen by remember { mutableStateOf(false) }
     var saveName by remember { mutableStateOf("") }
     var deleteCandidate by remember { mutableStateOf<Preset?>(null) }
+    var pendingOverwriteName by remember { mutableStateOf<String?>(null) }
+    var loadError by remember { mutableStateOf<PresetLoadError?>(null) }
     val previousCount = remember { mutableStateOf(presets.size) }
 
-    LaunchedEffect(presets.size) {
-        if (presets.size > previousCount.value) {
+    LaunchedEffect(presets.size, lastSaveError) {
+        // Close the save dialog after a successful save (no error and either
+        // a new entry appeared or an overwrite happened with no error left).
+        if (lastSaveError == null && presets.size != previousCount.value) {
             saveDialogOpen = false
             saveName = ""
+        } else if (lastSaveError == null && saveDialogOpen && pendingOverwriteName == null) {
+            // Overwrite case where size didn't change but save just succeeded.
+            // Detect via a small heuristic: dialog open and no pending overwrite.
+            // The size==previousCount check already handles new-entry success.
         }
         previousCount.value = presets.size
     }
@@ -84,7 +95,10 @@ fun InputScreen(
         ) {
             presetsBar(
                 presets = presets,
-                onLoad = { preset -> inputViewModel.applyPreset(preset) },
+                onLoad = { preset ->
+                    val err = inputViewModel.applyPreset(preset)
+                    if (err != null) loadError = err
+                },
                 onSaveClicked = {
                     saveName = ""
                     presetsViewModel.acknowledgeError()
@@ -121,13 +135,42 @@ fun InputScreen(
                 presetsViewModel.acknowledgeError()
             },
             onConfirm = {
-                presetsViewModel.trySave(saveName, lastValidRequest)
+                val trimmed = saveName.trim()
+                val matchingExisting = presets.firstOrNull {
+                    it.name.equals(trimmed, ignoreCase = true)
+                }
+                if (matchingExisting != null) {
+                    pendingOverwriteName = trimmed
+                } else {
+                    presetsViewModel.trySave(saveName, lastValidRequest, allowOverwrite = false)
+                }
             },
             onDismiss = {
                 saveDialogOpen = false
                 presetsViewModel.acknowledgeError()
             },
             errorMessage = lastSaveError?.let { PresetsStrings.message(it) },
+        )
+    }
+
+    pendingOverwriteName?.let { name ->
+        AlertDialog(
+            onDismissRequest = { pendingOverwriteName = null },
+            title = { Text(text = PresetsStrings.OVERWRITE_DIALOG_TITLE) },
+            text = { Text(text = PresetsStrings.overwriteDialogMessage(name)) },
+            confirmButton = {
+                TextButton(onClick = {
+                    presetsViewModel.trySave(saveName, lastValidRequest, allowOverwrite = true)
+                    pendingOverwriteName = null
+                    saveDialogOpen = false
+                    saveName = ""
+                }) { Text(PresetsStrings.OVERWRITE_DIALOG_OK) }
+            },
+            dismissButton = {
+                TextButton(onClick = { pendingOverwriteName = null }) {
+                    Text(PresetsStrings.OVERWRITE_DIALOG_CANCEL)
+                }
+            },
         )
     }
 
@@ -141,5 +184,17 @@ fun InputScreen(
             onDismiss = { deleteCandidate = null },
         )
     }
-}
 
+    loadError?.let { err ->
+        AlertDialog(
+            onDismissRequest = { loadError = null },
+            title = { Text(text = PresetsStrings.LOAD_ERROR_DIALOG_TITLE) },
+            text = { Text(text = PresetsStrings.loadErrorMessage(err)) },
+            confirmButton = {
+                TextButton(onClick = { loadError = null }) {
+                    Text(text = PresetsStrings.LOAD_ERROR_DIALOG_OK)
+                }
+            },
+        )
+    }
+}
