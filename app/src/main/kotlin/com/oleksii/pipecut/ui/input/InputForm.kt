@@ -62,6 +62,7 @@ fun InputForm(
             key = FieldKey.DIAMETER,
             state = state,
             imeAction = ImeAction.Next,
+            keyboardType = KeyboardType.Decimal,
         )
         NumericField(
             value = state.tiltDeg,
@@ -70,6 +71,7 @@ fun InputForm(
             key = FieldKey.TILT,
             state = state,
             imeAction = ImeAction.Next,
+            keyboardType = KeyboardType.Decimal,
         )
         NumericField(
             value = state.clockingDeg,
@@ -78,6 +80,8 @@ fun InputForm(
             key = FieldKey.CLOCKING,
             state = state,
             imeAction = ImeAction.Next,
+            // Phone keyboard exposes the minus sign that Decimal hides on most IMEs.
+            keyboardType = KeyboardType.Phone,
         )
         NumericField(
             value = state.offsetMm,
@@ -86,6 +90,7 @@ fun InputForm(
             key = FieldKey.OFFSET,
             state = state,
             imeAction = if (state.saddleEnabled) ImeAction.Next else ImeAction.Done,
+            keyboardType = KeyboardType.Decimal,
         )
 
         PointCountDropdown(
@@ -119,6 +124,7 @@ private fun NumericField(
     key: FieldKey,
     state: InputUiState,
     imeAction: ImeAction,
+    keyboardType: KeyboardType,
     modifier: Modifier = Modifier,
 ) {
     val showError = key in state.touched && key in state.errors
@@ -133,7 +139,7 @@ private fun NumericField(
             { Text(errorText, color = MaterialTheme.colorScheme.error) }
         } else null,
         keyboardOptions = KeyboardOptions(
-            keyboardType = KeyboardType.Number,
+            keyboardType = keyboardType,
             imeAction = imeAction,
         ),
         modifier = modifier.fillMaxWidth(),
@@ -211,6 +217,7 @@ private fun SaddleSection(
                     key = FieldKey.PARTNER_DIAMETER,
                     state = state,
                     imeAction = ImeAction.Next,
+                    keyboardType = KeyboardType.Decimal,
                 )
                 NumericField(
                     value = state.intersectionAngleDeg,
@@ -219,6 +226,7 @@ private fun SaddleSection(
                     key = FieldKey.INTERSECTION_ANGLE,
                     state = state,
                     imeAction = ImeAction.Next,
+                    keyboardType = KeyboardType.Decimal,
                 )
                 NumericField(
                     value = state.saddleClockingDeg,
@@ -227,6 +235,8 @@ private fun SaddleSection(
                     key = FieldKey.SADDLE_CLOCKING,
                     state = state,
                     imeAction = ImeAction.Next,
+                    // Phone keyboard exposes the minus sign that Decimal hides on most IMEs.
+                    keyboardType = KeyboardType.Phone,
                 )
                 NumericField(
                     value = state.saddleOffsetMm,
@@ -235,6 +245,7 @@ private fun SaddleSection(
                     key = FieldKey.SADDLE_OFFSET,
                     state = state,
                     imeAction = ImeAction.Done,
+                    keyboardType = KeyboardType.Decimal,
                 )
             }
         }
