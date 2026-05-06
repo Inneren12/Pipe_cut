@@ -8,7 +8,6 @@ import com.oleksii.pipecut.core.model.SaddleSpec
 import com.oleksii.pipecut.core.validation.DevelopmentValidator
 import com.oleksii.pipecut.core.validation.Validated
 import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertNotEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
@@ -322,8 +321,6 @@ class SaddleCutCalculatorTest {
         val message = ex.message ?: ""
         assertTrue(message.contains("offsetMm", ignoreCase = true), "Got: $message")
         assertTrue(message.contains("too small", ignoreCase = true), "Got: $message")
-        // Sanity: invariant assertion to silence unused-import warnings.
-        assertNotEquals("", message)
     }
 
     @Test
@@ -408,5 +405,50 @@ class SaddleCutCalculatorTest {
             ex.message!!.contains("clockingDeg", ignoreCase = false),
             "message must mention clockingDeg, was: ${ex.message}",
         )
+    }
+
+    @Test
+    fun `eccentric solver output points satisfy distance to main axis equals r2`() {
+        val pipeD = 100.0
+        val partnerD = 300.0
+        val thetaDeg = 90.0
+        val psiDeg = 0.0
+        val eMm = 20.0
+        val l0 = 200.0
+        val req = saddleRequest(
+            diameterMm = pipeD,
+            partnerDiameterMm = partnerD,
+            intersectionAngleDeg = thetaDeg,
+            saddleClockingDeg = psiDeg,
+            eccentricOffsetMm = eMm,
+            cutOffsetMm = l0,
+            pointCount = PointCount.P36,
+        )
+        val result = SaddleCutCalculator.calculate(req)
+        val r1 = pipeD / 2.0
+        val r2 = partnerD / 2.0
+        val thetaRad = Math.toRadians(thetaDeg)
+        val psiRad = Math.toRadians(psiDeg)
+        for ((index, point) in result.points.withIndex()) {
+            val phiRad = Math.toRadians(point.phiDeg)
+            val angle = phiRad - psiRad
+            val px = r1 * kotlin.math.cos(angle)
+            val py = r1 * kotlin.math.sin(angle) - eMm
+            val pz = point.lengthMm - l0
+            val dx = kotlin.math.sin(thetaRad)
+            val dz = kotlin.math.cos(thetaRad)
+            val dot = px * dx + pz * dz
+            val ex = px - dot * dx
+            val ey = py
+            val ez = pz - dot * dz
+            val distance = kotlin.math.sqrt(ex * ex + ey * ey + ez * ez)
+            assertEquals(
+                r2,
+                distance,
+                1e-9,
+                "Point at index=$index phiDeg=${point.phiDeg} must lie on partner cylinder; " +
+                    "distance=$distance, r2=$r2",
+            )
+        }
     }
 }
