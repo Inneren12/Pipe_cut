@@ -6,6 +6,27 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added — PR4
+- `PlaneCutCalculator` in `:core/math`: implements `CutCalculator` for the
+  flat (non-saddle) cut case using `L(φ) = L₀ + R · tan(α) · cos(φ − β)`.
+  Validates input via `CutRequestValidator` and self-checks output via
+  `DevelopmentValidator`. Rejects saddle requests with a clear error.
+- Comprehensive numeric tests:
+  - Reference drawing case (D=114.3, α=28°, β=12°, L₀=100).
+  - Straight, classic-non-clocked, and extreme-tilt cases.
+  - Parameterized invariants over a (α, β, L₀) grid.
+  - Output-size coverage for every `PointCount` entry.
+
+### Added — PR3
+- Validation in `:core/validation`:
+  - `Validated<T>` sealed result type with `Valid` / `Invalid`.
+  - `ValidationError` sealed hierarchy covering pipe, cut plane, saddle, and
+    development invariants.
+  - `CutRequestValidator` enforcing diameter > 0, tilt in [0°, 90°), clocking
+    in [-360°, 360°], non-negative offset, and saddle-side rules when present.
+  - `DevelopmentValidator` enforcing non-empty points, ascending unique phi in
+    [0°, 360°), and non-negative lengths.
+
 ### Added — PR2
 - Domain model in `:core/model`:
   - `PipeSpec` with derived `radiusMm` and `circumferenceMm`.
