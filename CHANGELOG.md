@@ -6,6 +6,61 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Changed — PR7 (fixup 2)
+- `ResultViewModel` now routes every request through
+  `CutCalculatorDispatcher` (added in PR5). The previous direct
+  `PlaneCutCalculator` call and the `SaddleNotImplemented` short-circuit
+  are gone; saddle requests with valid geometry now produce real
+  `Computed` results.
+- `ResultUiState.SaddleNotImplemented` and
+  `ResultStrings.SADDLE_NOT_IMPLEMENTED` are `@Deprecated`. They remain
+  in the sealed hierarchy for one release to keep the diff focused;
+  PR12 (polish) removes them along with the `resultPanel` branch.
+- `ResultUiState` KDoc no longer references PR5 — the project history
+  belongs in CHANGELOG, not in production code comments.
+- New `ResultFormattersTest`: pins `formatPhi`/`formatLength` to
+  `Locale.US` output regardless of the JVM default locale, so a
+  device set to `ru-RU` or `de-DE` still prints `100.50`, not
+  `100,50`, on the marking sheet.
+- `ResultViewModelTest` updated: the saddle test now expects
+  `Computed`, the helper builds a saddle request with safe positive
+  geometry (`L₀ = 600`), matching the PR5 reference fixture.
+
+### Changed — PR7 (fixup)
+- `InputScreen` is now a single root `LazyColumn`. The previous
+  `Column.verticalScroll` + nested `LazyColumn` combination crashes
+  Compose on first measurement; this fix removes the crash.
+- `InputForm`'s outer `verticalScroll` was removed for the same reason
+  — scrolling is owned by the screen-level `LazyColumn`.
+- The result table now has a **real** sticky header via
+  `LazyListScope.stickyHeader`, replacing the previous non-sticky
+  header that was promised in CHANGELOG.
+- `ResultTable` exports a `LazyListScope.resultPanel(state)` extension
+  instead of a `@Composable fun ResultTable`. The screen's `LazyColumn`
+  invokes it; no Compose API leaks remain.
+- Saddle banner text changed from "Saddle cuts arrive in PR5" to
+  "Saddle cuts are not available in this build." — PR numbers no
+  longer leak into the UI.
+- All `(φ, L)` formatting uses `Locale.US`. Engineering output stays
+  deterministic regardless of the device locale.
+- `ResultUiState.Empty` KDoc corrected: it shows a hint, not nothing.
+- Removed an unused `viewModelScope` placeholder from `ResultViewModel`.
+
+### Added — PR7
+- `ResultViewModel`, `ResultTable`, `ResultUiState`, `ResultStrings` in
+  `:app/ui/result` and `:app/ui/vm`:
+  - Subscribes to `InputViewModel.lastValidRequest` and runs
+    `PlaneCutCalculator` on every new flat-cut request.
+  - Renders the `(φ, L)` points as a table with sticky header.
+  - Saddle requests show a placeholder banner ("Saddle cuts arrive in
+    PR5"); a follow-up PR will swap to `CutCalculatorDispatcher` once
+    PR5 is merged.
+  - Calculator exceptions surface as an in-line error banner; the
+    previous successful result remains visible beneath it (sticky UX).
+- `InputScreen` now scrolls the form and the result table together.
+- Unit tests cover Empty / SaddleNotImplemented / Computed / Error
+  transitions and the sticky `previous` carry-over.
+
 ### Changed — PR6 (fixup)
 - CI now runs `:app:testDebugUnitTest` and `:core:check` so the new
   ViewModel and string-mapping tests gate every merge.
