@@ -23,7 +23,6 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.oleksii.pipecut.PipeCutApplication
-import com.oleksii.pipecut.core.model.PointCount
 import com.oleksii.pipecut.ui.presets.Preset
 import com.oleksii.pipecut.ui.presets.PresetDeleteDialog
 import com.oleksii.pipecut.ui.presets.PresetSaveDialog
@@ -33,7 +32,6 @@ import com.oleksii.pipecut.ui.result.resultPanel
 import com.oleksii.pipecut.ui.vm.InputViewModel
 import com.oleksii.pipecut.ui.vm.PresetsViewModel
 import com.oleksii.pipecut.ui.vm.ResultViewModel
-import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -86,7 +84,7 @@ fun InputScreen(
         ) {
             presetsBar(
                 presets = presets,
-                onLoad = { preset -> applyPreset(preset, inputViewModel) },
+                onLoad = { preset -> inputViewModel.applyPreset(preset) },
                 onSaveClicked = {
                     saveName = ""
                     presetsViewModel.acknowledgeError()
@@ -145,25 +143,3 @@ fun InputScreen(
     }
 }
 
-private fun applyPreset(preset: Preset, vm: InputViewModel) {
-    vm.onDiameterChange(formatNumber(preset.pipe.diameterMm))
-    vm.onTiltChange(formatNumber(preset.cut.tiltDeg))
-    vm.onClockingChange(formatNumber(preset.cut.clockingDeg))
-    vm.onOffsetChange(formatNumber(preset.cut.offsetMm))
-    vm.onSaddleEnabledChange(preset.saddle != null)
-    preset.saddle?.let { sad ->
-        vm.onPartnerDiameterChange(formatNumber(sad.partnerDiameterMm))
-        vm.onIntersectionAngleChange(formatNumber(sad.intersectionAngleDeg))
-        vm.onSaddleClockingChange(formatNumber(sad.clockingDeg))
-        vm.onSaddleOffsetChange(formatNumber(sad.offsetMm))
-    }
-    PointCount.entries
-        .firstOrNull { it.value == preset.pointCountValue }
-        ?.let(vm::onPointCountChange)
-    vm.onCalculateClicked()
-}
-
-private fun formatNumber(value: Double): String {
-    val s = String.format(Locale.US, "%.6f", value).trimEnd('0').trimEnd('.')
-    return if (s.isEmpty()) "0" else s
-}

@@ -1,8 +1,14 @@
 package com.oleksii.pipecut.ui.vm
 
+import com.oleksii.pipecut.core.model.PointCount
 import com.oleksii.pipecut.core.validation.ValidationError
 import com.oleksii.pipecut.ui.input.FieldError
 import com.oleksii.pipecut.ui.input.FieldKey
+import com.oleksii.pipecut.ui.presets.Preset
+import com.oleksii.pipecut.ui.presets.PresetCutPlane
+import com.oleksii.pipecut.ui.presets.PresetLoadError
+import com.oleksii.pipecut.ui.presets.PresetPipe
+import com.oleksii.pipecut.ui.presets.PresetSaddleSpec
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertNull
@@ -168,5 +174,78 @@ class InputViewModelTest {
         vm.onOffsetChange("100")
         assertNull(vm.uiState.value.errors[FieldKey.DIAMETER])
         assertEquals(114.3, vm.lastValidRequest.value!!.pipe.diameterMm, tol)
+    }
+
+    @Test
+    fun `applyPreset rewrites every field for a flat preset`() {
+        val vm = InputViewModel()
+        val preset = Preset(
+            name = "flat",
+            pipe = PresetPipe(diameterMm = 250.0),
+            cut = PresetCutPlane(tiltDeg = 33.5, clockingDeg = -7.5, offsetMm = 100.0),
+            saddle = null,
+            pointCountValue = 24,
+        )
+        val err = vm.applyPreset(preset)
+        assertNull(err)
+        val state = vm.uiState.value
+        assertEquals("250", state.diameterMm)
+        assertEquals("33.5", state.tiltDeg)
+        assertEquals("-7.5", state.clockingDeg)
+        assertEquals("100", state.offsetMm)
+        assertEquals(false, state.saddleEnabled)
+        assertEquals(PointCount.P24, state.pointCount)
+    }
+
+    @Test
+    fun `applyPreset clears stale saddle fields when loading a flat preset after a saddle preset`() {
+        val vm = InputViewModel()
+        val saddlePreset = Preset(
+            name = "saddle",
+            pipe = PresetPipe(diameterMm = 114.3),
+            cut = PresetCutPlane(0.0, 0.0, 600.0),
+            saddle = PresetSaddleSpec(914.4, 62.0, 0.0, 0.0),
+            pointCountValue = 36,
+        )
+        vm.applyPreset(saddlePreset)
+        val mid = vm.uiState.value
+        assertEquals(true, mid.saddleEnabled)
+        assertEquals("914.4", mid.partnerDiameterMm)
+
+        val flatPreset = Preset(
+            name = "flat",
+            pipe = PresetPipe(diameterMm = 100.0),
+            cut = PresetCutPlane(0.0, 0.0, 100.0),
+            saddle = null,
+            pointCountValue = 36,
+        )
+        val err = vm.applyPreset(flatPreset)
+        assertNull(err)
+        val state = vm.uiState.value
+        assertEquals(false, state.saddleEnabled)
+        assertEquals("", state.partnerDiameterMm)
+        assertEquals("", state.intersectionAngleDeg)
+        assertEquals("", state.saddleClockingDeg)
+        assertEquals("", state.saddleOffsetMm)
+    }
+
+    @Test
+    fun `applyPreset rejects an invalid pointCountValue without touching any field`() {
+        val vm = InputViewModel()
+        vm.onDiameterChange("100")
+        vm.onTiltChange("28")
+        val before = vm.uiState.value
+        val invalid = Preset(
+            name = "bad",
+            pipe = PresetPipe(diameterMm = 250.0),
+            cut = PresetCutPlane(33.0, 0.0, 100.0),
+            saddle = null,
+            pointCountValue = 999,
+        )
+        val err = vm.applyPreset(invalid)
+        assertTrue(err is PresetLoadError.InvalidPointCount, "got $err")
+        err as PresetLoadError.InvalidPointCount
+        assertEquals(999, err.rawValue)
+        assertEquals(before, vm.uiState.value)
     }
 }
