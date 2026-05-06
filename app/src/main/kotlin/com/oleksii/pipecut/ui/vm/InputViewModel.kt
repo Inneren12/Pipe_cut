@@ -22,7 +22,17 @@ class InputViewModel : ViewModel() {
     private val _uiState = MutableStateFlow(InputUiState())
     val uiState: StateFlow<InputUiState> = _uiState.asStateFlow()
 
-    /** Last `CutRequest` that successfully passed validation. Null until then. */
+    /**
+     * Sticky last `CutRequest` that successfully passed validation.
+     *
+     *  - Null until the user submits a valid request for the first time.
+     *  - Once non-null, **stays** non-null. Subsequent invalid edits do not
+     *    wipe it. The next successful validation overwrites it.
+     *
+     * This contract lets downstream consumers (table, canvas) keep showing
+     * the previous result while the user is mid-edit, instead of flickering
+     * to an empty state on every keystroke.
+     */
     private val _lastValidRequest = MutableStateFlow<CutRequest?>(null)
     val lastValidRequest: StateFlow<CutRequest?> = _lastValidRequest.asStateFlow()
 
@@ -83,7 +93,9 @@ class InputViewModel : ViewModel() {
         } else null
 
         _uiState.update { it.copy(errors = errors) }
-        _lastValidRequest.value = validatedRequest
+        if (validatedRequest != null) {
+            _lastValidRequest.value = validatedRequest
+        }
     }
 
     private fun parse(state: InputUiState): Pair<CutRequest?, Map<FieldKey, FieldError>> {

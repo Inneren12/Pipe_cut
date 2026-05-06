@@ -115,6 +115,51 @@ class InputViewModelTest {
     }
 
     @Test
+    fun `lastValidRequest is sticky once it has captured a valid request`() {
+        val vm = InputViewModel()
+        fillValid(vm)
+        val firstValid = vm.lastValidRequest.value
+        assertNotNull(firstValid, "form should be valid after fillValid")
+        // Make the form invalid by erasing the diameter.
+        vm.onDiameterChange("")
+        val afterErase = vm.lastValidRequest.value
+        assertNotNull(afterErase, "lastValidRequest must stay non-null after invalidation")
+        // Sticky means we still see the previous successful request.
+        assertEquals(firstValid, afterErase)
+        // Type something invalid in another field too.
+        vm.onTiltChange("not a number")
+        assertEquals(firstValid, vm.lastValidRequest.value)
+    }
+
+    @Test
+    fun `lastValidRequest updates on the next successful validation`() {
+        val vm = InputViewModel()
+        fillValid(vm)
+        val firstValid = vm.lastValidRequest.value!!
+        assertEquals(28.0, firstValid.cut.tiltDeg, 1e-9)
+        // Break, then fix to a different valid value.
+        vm.onTiltChange("invalid")
+        assertEquals(firstValid, vm.lastValidRequest.value, "should still hold the first valid")
+        vm.onTiltChange("30")
+        val second = vm.lastValidRequest.value!!
+        assertEquals(30.0, second.cut.tiltDeg, 1e-9)
+    }
+
+    @Test
+    fun `lastValidRequest survives switching saddle on and back off`() {
+        val vm = InputViewModel()
+        fillValid(vm)
+        val flatValid = vm.lastValidRequest.value
+        assertNotNull(flatValid)
+        // Turn saddle on; the form is now invalid (saddle fields are blank).
+        vm.onSaddleEnabledChange(true)
+        assertEquals(flatValid, vm.lastValidRequest.value, "sticky carries over on toggle")
+        // Turn it back off; sticky still holds the original flat request.
+        vm.onSaddleEnabledChange(false)
+        assertEquals(flatValid, vm.lastValidRequest.value)
+    }
+
+    @Test
     fun `comma decimal separator is accepted`() {
         val vm = InputViewModel()
         vm.onDiameterChange("114,3")
