@@ -1,21 +1,25 @@
 # Pipe_cut
 
-Android application for calculating pipe-cut development (unfolding) used to mark
-pipes for gas/plasma cutting. Supports flat cuts and saddle cuts, including the
-rotated cut ellipse (rotation of the cut plane around its own normal by angle β).
+Android application for calculating pipe-cut developments (unfoldings) used to mark pipes for manual cutting, grinding, gas/plasma cutting, or template preparation.
 
-The project is a Gradle multi-module build:
+## Planned scope
 
-- `:core` — pure JVM module with all math and domain models.
+- Flat pipe cuts.
+- Saddle cuts (intersection with a partner pipe).
+- **Rotated and offset cut-plane developments** — the distinguishing feature this app aims to support and existing calculators omit.
+
+## Architecture
+
+Gradle multi-module build:
+
+- `:core` — pure JVM module with all geometry, math, and domain models. **Must not** depend on Android APIs (enforced by the `checkNoAndroidImports` Gradle task).
 - `:app` — Android Compose application that depends on `:core`.
 
 ## Build
 
 ```bash
-./gradlew :app:assembleDebug
+./gradlew :core:test :app:assembleDebug
 ```
-
-The debug APK is produced at `app/build/outputs/apk/debug/`.
 
 ## Test
 
@@ -23,4 +27,8 @@ The debug APK is produced at `app/build/outputs/apk/debug/`.
 ./gradlew :core:test
 ```
 
-Unit tests live in `:core` and run on the JVM with JUnit 5.
+## Verify core isolation
+
+```bash
+./gradlew :core:check
+```

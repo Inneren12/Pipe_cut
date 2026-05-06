@@ -3,7 +3,10 @@ package com.oleksii.pipecut.core
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 
-class PlaceholderTest {
+class PipeCutCoreTest {
+
     @Test
-    fun `core module loads`() = assertEquals(2, 1 + 1)
+    fun `core module exposes its version`() {
+        assertEquals("0.1.0", PipeCutCore.VERSION)
+    }
 }
