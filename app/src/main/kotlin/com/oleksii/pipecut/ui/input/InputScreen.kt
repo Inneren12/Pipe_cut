@@ -34,6 +34,7 @@ import com.oleksii.pipecut.ui.presets.PresetsStrings
 import com.oleksii.pipecut.ui.presets.presetsBar
 import com.oleksii.pipecut.ui.canvas.canvasPanel
 import com.oleksii.pipecut.ui.result.resultPanel
+import com.oleksii.pipecut.ui.vm.CanvasViewModel
 import com.oleksii.pipecut.ui.vm.InputViewModel
 import com.oleksii.pipecut.ui.vm.PresetsViewModel
 import com.oleksii.pipecut.ui.vm.ResultViewModel
@@ -43,6 +44,7 @@ import com.oleksii.pipecut.ui.vm.ResultViewModel
 fun InputScreen(
     inputViewModel: InputViewModel = viewModel(),
     resultViewModel: ResultViewModel = viewModel(),
+    canvasViewModel: CanvasViewModel = viewModel(),
     presetsViewModel: PresetsViewModel = run {
         val app = LocalContext.current.applicationContext as PipeCutApplication
         viewModel(
@@ -120,7 +122,7 @@ fun InputScreen(
                 )
             }
             resultPanel(resultState)
-            canvasPanel(resultState)
+            canvasPanel(resultState, canvasViewModel)
         }
     }
 

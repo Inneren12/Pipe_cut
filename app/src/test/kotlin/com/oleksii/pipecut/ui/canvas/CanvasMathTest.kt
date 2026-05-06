@@ -117,6 +117,111 @@ class CanvasMathTest {
     }
 
     @Test
+    fun `clampTransform clips scale below 0 5 and above 8 0`() {
+        val b = CanvasBox(1000f, 200f, 0f)
+        val small = clampTransform(CanvasTransform(scalePx = 0.1f), b)
+        val big = clampTransform(CanvasTransform(scalePx = 100f), b)
+        assertEquals(CanvasTransform.MIN_SCALE, small.scalePx, 1e-6f)
+        assertEquals(CanvasTransform.MAX_SCALE, big.scalePx, 1e-6f)
+    }
+
+    @Test
+    fun `clampTransform clamps pan to stay in bounds`() {
+        val b = CanvasBox(1000f, 200f, 0f)
+        val proposed = CanvasTransform(scalePx = 1f, panXPx = 1e6f, panYPx = -1e6f)
+        val clamped = clampTransform(proposed, b)
+        val maxPanX = b.widthPx / 2f * 1f * 0.75f
+        val maxPanY = b.heightPx / 2f * 1f * 0.75f
+        assertEquals(maxPanX, clamped.panXPx, 1e-3f)
+        assertEquals(-maxPanY, clamped.panYPx, 1e-3f)
+    }
+
+    @Test
+    fun `clampTransform pan limits scale with the zoom factor`() {
+        val b = CanvasBox(1000f, 200f, 0f)
+        val proposed = CanvasTransform(scalePx = 4f, panXPx = 1e6f, panYPx = 1e6f)
+        val clamped = clampTransform(proposed, b)
+        val maxPanX = b.widthPx / 2f * 4f * 0.75f
+        assertEquals(maxPanX, clamped.panXPx, 1e-3f)
+    }
+
+    @Test
+    fun `applyTransform with identity returns the input`() {
+        val b = CanvasBox(1000f, 200f, 0f)
+        val p = CanvasPoint(500f, 100f)
+        val q = applyTransform(p, b, CanvasTransform.Identity)
+        assertEquals(p.x, q.x, 1e-6f)
+        assertEquals(p.y, q.y, 1e-6f)
+    }
+
+    @Test
+    fun `applyTransform with scale 2 zooms around the canvas center`() {
+        val b = CanvasBox(1000f, 200f, 0f)
+        val center = CanvasPoint(500f, 100f)
+        val q = applyTransform(center, b, CanvasTransform(scalePx = 2f))
+        assertEquals(center.x, q.x, 1e-3f)
+        assertEquals(center.y, q.y, 1e-3f)
+        val edge = CanvasPoint(1000f, 200f)
+        val edgeMapped = applyTransform(edge, b, CanvasTransform(scalePx = 2f))
+        assertEquals(1500f, edgeMapped.x, 1e-3f)
+        assertEquals(300f, edgeMapped.y, 1e-3f)
+    }
+
+    @Test
+    fun `composeTransform clamps the result`() {
+        val b = CanvasBox(1000f, 200f, 0f)
+        val current = CanvasTransform(scalePx = 4f, panXPx = 0f, panYPx = 0f)
+        val composed = composeTransform(
+            current = current,
+            panChangePx = 1e6f to 0f,
+            zoomChange = 100f,
+            box = b,
+        )
+        assertEquals(CanvasTransform.MAX_SCALE, composed.scalePx, 1e-6f)
+        val maxPanX = b.widthPx / 2f * CanvasTransform.MAX_SCALE * 0.75f
+        assertEquals(maxPanX, composed.panXPx, 1e-3f)
+    }
+
+    @Test
+    fun `rotateAroundY at 0 degrees is identity`() {
+        val (x, z) = rotateAroundY(3.0, 4.0, 0f)
+        assertEquals(3.0, x, 1e-12)
+        assertEquals(4.0, z, 1e-12)
+    }
+
+    @Test
+    fun `rotateAroundY at 90 degrees rotates 1 0 to 0 -1`() {
+        val (x, z) = rotateAroundY(1.0, 0.0, 90f)
+        assertEquals(0.0, x, 1e-9)
+        assertEquals(-1.0, z, 1e-9)
+    }
+
+    @Test
+    fun `rotateAroundY at 360 degrees is identity within tolerance`() {
+        val (x, z) = rotateAroundY(3.0, 4.0, 360f)
+        assertEquals(3.0, x, 1e-9)
+        assertEquals(4.0, z, 1e-9)
+    }
+
+    @Test
+    fun `pipePreviewGeometry3D with rotation 0 matches the un-rotated overload`() {
+        val dev = Development(
+            points = listOf(
+                DevPoint(0.0, 100.0),
+                DevPoint(90.0, 80.0),
+                DevPoint(180.0, 100.0),
+                DevPoint(270.0, 120.0),
+            ),
+        )
+        val a = pipePreviewGeometry3D(dev, pipe, box, samples = 36, rotationYDeg = 0f)
+        val b = pipePreviewGeometry3D(dev, pipe, box, samples = 36)
+        for (i in a.cut.indices) {
+            assertEquals(a.cut[i].x, b.cut[i].x, 1e-3f)
+            assertEquals(a.cut[i].y, b.cut[i].y, 1e-3f)
+        }
+    }
+
+    @Test
     fun `pipePreviewGeometry3D fits cut and rims into the same canvas box`() {
         val dev = Development(
             points = listOf(

@@ -16,9 +16,10 @@ import androidx.compose.ui.unit.dp
 import com.oleksii.pipecut.core.model.CutRequest
 import com.oleksii.pipecut.core.model.Development
 import com.oleksii.pipecut.ui.result.ResultUiState
+import com.oleksii.pipecut.ui.vm.CanvasViewModel
 
 @Suppress("DEPRECATION") // ResultUiState.SaddleNotImplemented removed in PR12.
-fun LazyListScope.canvasPanel(resultState: ResultUiState) {
+fun LazyListScope.canvasPanel(resultState: ResultUiState, canvasViewModel: CanvasViewModel) {
     val pair: Pair<CutRequest, Development>? = when (resultState) {
         is ResultUiState.Computed -> resultState.request to resultState.development
         is ResultUiState.Error -> {
@@ -32,7 +33,11 @@ fun LazyListScope.canvasPanel(resultState: ResultUiState) {
     if (pair == null) return
     val (request, development) = pair
     item("canvas-panel") {
-        CanvasPanelContent(development = development, request = request)
+        CanvasPanelContent(
+            development = development,
+            request = request,
+            canvasViewModel = canvasViewModel,
+        )
     }
 }
 
@@ -40,6 +45,7 @@ fun LazyListScope.canvasPanel(resultState: ResultUiState) {
 private fun CanvasPanelContent(
     development: Development,
     request: CutRequest,
+    canvasViewModel: CanvasViewModel,
 ) {
     Column(
         modifier = Modifier
@@ -59,6 +65,7 @@ private fun CanvasPanelContent(
         DevelopmentCanvas2D(
             development = development,
             pipe = request.pipe,
+            canvasViewModel = canvasViewModel,
         )
         Text(
             text = CanvasStrings.LEGEND_AXIS_PHI,
@@ -86,6 +93,7 @@ private fun CanvasPanelContent(
                 PipePreviewCanvas3D(
                     development = development,
                     pipe = request.pipe,
+                    canvasViewModel = canvasViewModel,
                 )
             }
         }

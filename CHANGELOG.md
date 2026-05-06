@@ -6,6 +6,25 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added — PR9
+- Pinch-zoom and two-finger pan on the 2D unwrapped development
+  canvas via `Modifier.transformable`. Scale clamped to [0.5x, 8x];
+  pan limited to keep ≥ 25% of the content on screen.
+- Pinch-zoom and two-finger pan on the 3D pipe preview, plus
+  one-finger drag rotates the pipe around its axial direction
+  (`rotateAroundY`). The cabinet projection respects the rotation
+  via the new `pipePreviewGeometry3D(... rotationYDeg)` overload.
+- Double-tap on either canvas resets that panel's transform
+  (and rotation, on 3D).
+- New `CanvasViewModel` holds the per-panel transforms and
+  rotation as independent `StateFlow`s. JVM unit tests cover the
+  state transitions and the `clampTransform` / `rotateAroundY`
+  math.
+- `LazyListScope.canvasPanel` signature gains a second parameter
+  for the ViewModel.
+- No new gradle dependencies, no new public strings, no `:core`
+  change.
+
 ### Changed — PR10 (fixup 2)
 - `InputScreen` pre-flights `lastValidRequest == null` (and empty /
   over-length name) before opening the overwrite-confirm dialog.
