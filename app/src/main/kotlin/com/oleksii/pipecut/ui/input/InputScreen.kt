@@ -67,16 +67,10 @@ fun InputScreen(
     var loadError by remember { mutableStateOf<PresetLoadError?>(null) }
     val previousCount = remember { mutableStateOf(presets.size) }
 
-    LaunchedEffect(presets.size, lastSaveError) {
-        // Close the save dialog after a successful save (no error and either
-        // a new entry appeared or an overwrite happened with no error left).
-        if (lastSaveError == null && presets.size != previousCount.value) {
+    LaunchedEffect(presets.size) {
+        if (presets.size > previousCount.value) {
             saveDialogOpen = false
             saveName = ""
-        } else if (lastSaveError == null && saveDialogOpen && pendingOverwriteName == null) {
-            // Overwrite case where size didn't change but save just succeeded.
-            // Detect via a small heuristic: dialog open and no pending overwrite.
-            // The size==previousCount check already handles new-entry success.
         }
         previousCount.value = presets.size
     }
