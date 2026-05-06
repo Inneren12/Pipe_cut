@@ -16,6 +16,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.oleksii.pipecut.ui.canvas.canvasPanel
 import com.oleksii.pipecut.ui.result.resultPanel
 import com.oleksii.pipecut.ui.vm.InputViewModel
 import com.oleksii.pipecut.ui.vm.ResultViewModel
@@ -64,6 +65,7 @@ fun InputScreen(
                 )
             }
             resultPanel(resultState)
+            canvasPanel(resultState)
         }
     }
 }
