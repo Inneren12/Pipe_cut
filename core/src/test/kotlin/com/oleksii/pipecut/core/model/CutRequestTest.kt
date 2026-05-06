@@ -9,8 +9,13 @@ import org.junit.jupiter.api.Test
 class CutRequestTest {
 
     private val pipe = PipeSpec(diameterMm = 219.1)
-    private val cut = CutPlane(tiltDeg = 28.0, rotationDeg = 12.0, offsetMm = 150.0)
-    private val saddle = SaddleSpec(partnerDiameterMm = 914.4)
+    private val cut = CutPlane(tiltDeg = 28.0, clockingDeg = 12.0, offsetMm = 150.0)
+    private val saddle = SaddleSpec(
+        partnerDiameterMm = 914.4,
+        intersectionAngleDeg = 90.0,
+        clockingDeg = 0.0,
+        offsetMm = 0.0
+    )
 
     @Test
     fun `equality without saddle`() {
@@ -35,13 +40,8 @@ class CutRequestTest {
         assertNotEquals(flat, withSaddle)
     }
 
-    /**
-     * Contract: `saddle` has no default value. Calling
-     * `CutRequest(pipe, cut, pointCount = PointCount.P36)` would fail to
-     * compile in this PR. This test asserts the explicit-null branch instead.
-     */
     @Test
-    fun `saddle defaults are not provided`() {
+    fun `flat and saddle requests can both be constructed explicitly`() {
         val flat = CutRequest(
             pipe = pipe,
             cut = cut,

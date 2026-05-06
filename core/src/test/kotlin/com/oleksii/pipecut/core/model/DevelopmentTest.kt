@@ -1,6 +1,7 @@
 package com.oleksii.pipecut.core.model
 
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Test
 
 class DevelopmentTest {
@@ -15,8 +16,15 @@ class DevelopmentTest {
                 DevPoint(phiDeg = 270.0, lengthMm = 50.25)
             )
         )
-        assertEquals(200.0, dev.maxLengthMm, 1e-9)
-        assertEquals(50.25, dev.minLengthMm, 1e-9)
+        assertEquals(200.0, dev.maxLengthMm!!, 1e-9)
+        assertEquals(50.25, dev.minLengthMm!!, 1e-9)
+    }
+
+    @Test
+    fun `maxLengthMm and minLengthMm return null for an empty list`() {
+        val dev = Development(points = emptyList())
+        assertNull(dev.maxLengthMm)
+        assertNull(dev.minLengthMm)
     }
 
     @Test

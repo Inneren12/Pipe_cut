@@ -4,11 +4,16 @@ package com.oleksii.pipecut.core.model
  * Result of a cut development calculation: an ordered list of points sampled
  * around the pipe, suitable for marking on the metal or rendering on screen.
  *
- * Points are ordered by ascending phiDeg.
+ * Invariant (enforced by validation in PR3): non-empty, ascending [DevPoint.phiDeg],
+ * unique [DevPoint.phiDeg] values. PR2 itself does not enforce these.
+ *
+ * [maxLengthMm] and [minLengthMm] are nullable to remain safe on an empty
+ * list. In production flows they are always non-null because the validator
+ * rejects empty results before this type reaches the UI.
  */
 data class Development(
     val points: List<DevPoint>
 ) {
-    val maxLengthMm: Double get() = points.maxOf { it.lengthMm }
-    val minLengthMm: Double get() = points.minOf { it.lengthMm }
+    val maxLengthMm: Double? get() = points.maxOfOrNull { it.lengthMm }
+    val minLengthMm: Double? get() = points.minOfOrNull { it.lengthMm }
 }

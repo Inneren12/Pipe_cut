@@ -7,13 +7,23 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ## [Unreleased]
 
 ### Added — PR2
-- Domain model in `:core/model`: PipeSpec, CutPlane, SaddleSpec, CutRequest,
-  DevPoint, Development, PointCount.
+- Domain model in `:core/model`:
+  - `PipeSpec` with derived `radiusMm` and `circumferenceMm`.
+  - `CutPlane` with `tiltDeg` (α), `clockingDeg` (β — angular direction of
+    plane tilt around the pipe axis), and `offsetMm` (L₀).
+  - `SaddleSpec` covering partner diameter, intersection angle, clocking,
+    and eccentric offset — complete enough that PR5 can implement saddle
+    math without breaking the API.
+  - `CutRequest` bundling pipe, cut, optional saddle, and point count.
+  - `DevPoint` with explicit phi-direction documentation.
+  - `Development` with nullable min/max length helpers.
+  - `PointCount` enum: P12, P24, P36, P72, P120, P180, P360.
 - `CutCalculator` interface in `:core/math` (no implementation yet).
-- Unit tests covering equality, copy, and derived properties for every model.
+- Unit tests for every model: PipeSpec, CutPlane, SaddleSpec, CutRequest,
+  DevPoint, Development, PointCount.
 
 ### Removed — PR2
-- Placeholder class and test from PR1.
+- PR1 `PipeCutCore` marker and its smoke test, replaced by real domain models.
 
 ### Added — PR1
 - Initial Gradle multi-module project (`:core`, `:app`).

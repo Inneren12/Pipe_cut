@@ -3,6 +3,7 @@ package com.oleksii.pipecut.core.model
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotEquals
 import org.junit.jupiter.api.Test
+import kotlin.math.PI
 
 class PipeSpecTest {
 
@@ -23,7 +24,7 @@ class PipeSpecTest {
     @Test
     fun `circumferenceMm equals PI times diameterMm`() {
         val pipe = PipeSpec(diameterMm = 219.1)
-        assertEquals(Math.PI * 219.1, pipe.circumferenceMm, 1e-9)
+        assertEquals(PI * 219.1, pipe.circumferenceMm, 1e-9)
     }
 
     @Test
