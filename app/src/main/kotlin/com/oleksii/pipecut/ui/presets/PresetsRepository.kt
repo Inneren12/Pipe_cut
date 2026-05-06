@@ -49,29 +49,46 @@ class DataStorePresetsRepository(
         maxPresets: Int,
         allowOverwrite: Boolean,
     ): PresetSaveError? {
+        val normalizedName = preset.name.trim()
+        if (normalizedName.isEmpty()) return PresetSaveError.EmptyName
+        if (normalizedName.length > MAX_NAME_LENGTH) return PresetSaveError.NameTooLong
+        val normalizedPreset =
+            if (preset.name == normalizedName) preset else preset.copy(name = normalizedName)
+
         var error: PresetSaveError? = null
         store.edit { prefs ->
-            val existingPresetEntries = prefs.asMap()
+            // Self-heal: drop any preset key whose JSON does not
+            // decode. Without this, corrupt entries occupy slots
+            // forever — invisible in the UI yet counted toward the
+            // cap. PR12 owns user-visible recovery affordances.
+            val presetEntries = prefs.asMap()
                 .filter { (k, v) -> k.name.startsWith(KEY_PREFIX) && v is String }
-            val matching = existingPresetEntries.keys
-                .firstOrNull { key ->
-                    key.name.removePrefix(KEY_PREFIX)
-                        .equals(preset.name, ignoreCase = true)
-                }
+            val corruptKeys = presetEntries.mapNotNull { (k, v) ->
+                val asString = v as String
+                if (runCatching { json.decodeFromString<Preset>(asString) }.isFailure) k
+                else null
+            }
+            for (k in corruptKeys) prefs.remove(k)
+
+            val validEntries = prefs.asMap()
+                .filter { (k, v) -> k.name.startsWith(KEY_PREFIX) && v is String }
+            val matching = validEntries.keys.firstOrNull { key ->
+                key.name.removePrefix(KEY_PREFIX)
+                    .equals(normalizedPreset.name, ignoreCase = true)
+            }
             if (matching != null && !allowOverwrite) {
                 error = PresetSaveError.NameAlreadyExists
                 return@edit
             }
             val isOverwrite = matching != null
-            val postSize =
-                if (isOverwrite) existingPresetEntries.size else existingPresetEntries.size + 1
+            val postSize = if (isOverwrite) validEntries.size else validEntries.size + 1
             if (postSize > maxPresets) {
                 error = PresetSaveError.LimitReached
                 return@edit
             }
             if (matching != null) prefs.remove(matching)
-            val key = stringPreferencesKey(KEY_PREFIX + preset.name)
-            prefs[key] = json.encodeToString(Preset.serializer(), preset)
+            val key = stringPreferencesKey(KEY_PREFIX + normalizedPreset.name)
+            prefs[key] = json.encodeToString(Preset.serializer(), normalizedPreset)
         }
         return error
     }

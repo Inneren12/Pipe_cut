@@ -3,9 +3,12 @@ package com.oleksii.pipecut.ui.presets
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.stringPreferencesKey
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertSame
 import org.junit.jupiter.api.Assertions.assertTrue
@@ -25,6 +28,8 @@ class PresetsRepositoryTest {
 
     private fun newRepoSharingTheSameStore(): PresetsRepository =
         DataStorePresetsRepository(sharedStore)
+
+    private fun currentStore(): DataStore<Preferences> = sharedStore
 
     private fun samplePreset(name: String) = Preset(
         name = name,
@@ -140,5 +145,86 @@ class PresetsRepositoryTest {
             allowOverwrite = false,
         )
         assertSame(PresetSaveError.LimitReached, err)
+    }
+
+    @Test
+    fun `saveIfAllowed rejects empty name`() = runTest {
+        val repo = newRepo()
+        val err = repo.saveIfAllowed(
+            preset = samplePreset("   "),
+            maxPresets = 5,
+            allowOverwrite = false,
+        )
+        assertSame(PresetSaveError.EmptyName, err)
+        assertTrue(repo.observe().first().isEmpty())
+    }
+
+    @Test
+    fun `saveIfAllowed rejects name longer than MAX_NAME_LENGTH`() = runTest {
+        val repo = newRepo()
+        val tooLong = "a".repeat(MAX_NAME_LENGTH + 1)
+        val err = repo.saveIfAllowed(
+            preset = samplePreset(tooLong),
+            maxPresets = 5,
+            allowOverwrite = false,
+        )
+        assertSame(PresetSaveError.NameTooLong, err)
+        assertTrue(repo.observe().first().isEmpty())
+    }
+
+    @Test
+    fun `saveIfAllowed normalizes name by trimming surrounding whitespace`() = runTest {
+        val repo = newRepo()
+        val err = repo.saveIfAllowed(
+            preset = samplePreset("  alpha  "),
+            maxPresets = 5,
+            allowOverwrite = false,
+        )
+        assertNull(err)
+        val list = repo.observe().first()
+        assertEquals(1, list.size)
+        assertEquals("alpha", list[0].name)
+        val dup = repo.saveIfAllowed(
+            preset = samplePreset("ALPHA"),
+            maxPresets = 5,
+            allowOverwrite = false,
+        )
+        assertSame(PresetSaveError.NameAlreadyExists, dup)
+    }
+
+    @Test
+    fun `saveIfAllowed self-heals corrupt JSON entries before counting toward the cap`() = runTest {
+        val repo = newRepo()
+        val store = currentStore()
+        store.edit { prefs ->
+            prefs[stringPreferencesKey("preset/zombie")] = "{not really json"
+        }
+        repeat(MAX_PRESETS - 1) { i ->
+            repo.saveIfAllowed(samplePreset("name-$i"), MAX_PRESETS, allowOverwrite = false)
+        }
+        val err = repo.saveIfAllowed(
+            samplePreset("recovered"),
+            MAX_PRESETS,
+            allowOverwrite = false,
+        )
+        assertNull(err, "expected the corrupt entry to be cleaned up; got $err")
+        val list = repo.observe().first()
+        assertEquals(MAX_PRESETS, list.size)
+        assertTrue(list.any { it.name == "recovered" })
+        assertFalse(list.any { it.name == "zombie" })
+    }
+
+    @Test
+    fun `saveIfAllowed self-heals corrupt entries even when set is otherwise empty`() = runTest {
+        val repo = newRepo()
+        val store = currentStore()
+        store.edit { prefs ->
+            prefs[stringPreferencesKey("preset/zombie")] = "garbage"
+        }
+        val err = repo.saveIfAllowed(samplePreset("first"), MAX_PRESETS, allowOverwrite = false)
+        assertNull(err)
+        val list = repo.observe().first()
+        assertEquals(1, list.size)
+        assertEquals("first", list[0].name)
     }
 }
