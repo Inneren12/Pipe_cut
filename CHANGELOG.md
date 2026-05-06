@@ -6,6 +6,26 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Changed — PR7 (fixup)
+- `InputScreen` is now a single root `LazyColumn`. The previous
+  `Column.verticalScroll` + nested `LazyColumn` combination crashes
+  Compose on first measurement; this fix removes the crash.
+- `InputForm`'s outer `verticalScroll` was removed for the same reason
+  — scrolling is owned by the screen-level `LazyColumn`.
+- The result table now has a **real** sticky header via
+  `LazyListScope.stickyHeader`, replacing the previous non-sticky
+  header that was promised in CHANGELOG.
+- `ResultTable` exports a `LazyListScope.resultPanel(state)` extension
+  instead of a `@Composable fun ResultTable`. The screen's `LazyColumn`
+  invokes it; no Compose API leaks remain.
+- Saddle banner text changed from "Saddle cuts arrive in PR5" to
+  "Saddle cuts are not available in this build." — PR numbers no
+  longer leak into the UI.
+- All `(φ, L)` formatting uses `Locale.US`. Engineering output stays
+  deterministic regardless of the device locale.
+- `ResultUiState.Empty` KDoc corrected: it shows a hint, not nothing.
+- Removed an unused `viewModelScope` placeholder from `ResultViewModel`.
+
 ### Added — PR7
 - `ResultViewModel`, `ResultTable`, `ResultUiState`, `ResultStrings` in
   `:app/ui/result` and `:app/ui/vm`:

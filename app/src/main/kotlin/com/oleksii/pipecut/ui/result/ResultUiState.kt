@@ -7,7 +7,7 @@ import com.oleksii.pipecut.core.model.Development
  *
  * Distinct states drive what the user sees:
  *
- *  - [Empty] — no valid request yet. Show nothing.
+ *  - [Empty] — no valid request yet. Show a hint.
  *  - [SaddleNotImplemented] — current request is a saddle; calculator
  *    arrives in PR5. Show a placeholder banner.
  *  - [Computed] — last successful calculation. Show the table.
