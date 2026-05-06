@@ -6,6 +6,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Changed — PR4 (fixup)
+- `PlaneCutCalculator` now rejects plane-cut requests whose minimum
+  generated length would be negative (`L₀ < R · tan(α)`). The cut would
+  need to begin behind the chosen end face, which is geometrically invalid.
+  Reported as `IllegalArgumentException`, not as the previous misleading
+  `IllegalStateException("This is a bug")`.
+- Use `PipeSpec.radiusMm` instead of inline `diameterMm / 2.0` for clarity.
+
 ### Added — PR4
 - `PlaneCutCalculator` in `:core/math`: implements `CutCalculator` for the
   flat (non-saddle) cut case using `L(φ) = L₀ + R · tan(α) · cos(φ − β)`.
