@@ -9,8 +9,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ### Added — PR8
 - New canvas panel in `:app/ui/canvas`:
   - `DevelopmentCanvas2D` — unwrapped pipe surface with the cut line
-    drawn as a closed polyline. The shape the welder traces onto a
-    paper template, wraps around the pipe, and scribes.
+    drawn as an open polyline with a virtual seam point at the right
+    edge (φ = 0 is on the left, φ = 360 is on the right of the
+    unwrapped sheet). The shape the welder traces onto a paper
+    template, wraps around the pipe, and scribes.
   - `PipePreviewCanvas3D` — small isometric thumbnail of the pipe
     with the cut highlighted, for sanity-checking the entered
     geometry.
@@ -18,10 +20,42 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   both visuals into the screen-level `LazyColumn`, beneath the result
   table.
 - `CanvasMath.kt` — pure JVM conversions (development-to-canvas,
-  cabinet projection) covered by unit tests including degenerate
-  y-range and single-point edge cases.
+  cabinet projection, unified `pipePreviewGeometry3D`) covered by
+  unit tests including degenerate y-range, single-point edge cases,
+  and a 3D fit-bounds invariant.
 - `CanvasStrings` with a unit test that no constant leaks PR numbers.
 - No new gradle dependencies, no new ViewModels.
+
+### Changed — PR7 (fixup 3)
+- `ResultUiState.Computed` now carries the `CutRequest` that
+  produced its `Development`. `ResultUiState.Error` carries the
+  `previousRequest` that produced `previous`. This closes a hidden
+  bug where downstream consumers (canvas, future labels) could
+  scale the displayed development by a different request after the
+  user kept editing the form mid-error.
+- `ResultViewModel` populates the new fields on every transition;
+  unit tests assert the carry-over across Computed → Error chains.
+- `resultPanel(state)` reads everything from `ResultUiState` (no
+  separate `request` parameter); identical visual output.
+
+### Changed — PR8 (fixup)
+- 2D unwrapped development now draws as an **open polyline** plus a
+  virtual seam point at the right canvas edge. The previous
+  `lineTo(first)` close drew a diagonal across the full template
+  that does not exist on the real cut.
+- `canvasPanel` no longer takes a separate `request` argument; it
+  reads the `CutRequest` from `ResultUiState` so canvas and table
+  share the same source of truth and cannot drift.
+- The duplicate canvas-empty hint is removed; the result panel's
+  empty hint now serves both. `CanvasStrings.EMPTY_HINT` is
+  `@Deprecated`, scheduled for removal in PR12.
+- `CanvasMath` exposes one `pipePreviewGeometry3D(...)` returning a
+  `PipePreviewGeometry` DTO, replacing the duplicated
+  `cutCurve3D`/`rimCurves3D` public functions and ensuring the cut
+  and rims share a single fit pass.
+- `PipePreviewCanvas3D` consumes the DTO; the 3D cut **stays
+  closed** (φ = 0 and φ = 360 are the same point on a cylinder), the
+  2D unwrapped cut stays open. Different topology, different rule.
 
 ### Changed — PR7 (fixup 2)
 - `ResultViewModel` now routes every request through
