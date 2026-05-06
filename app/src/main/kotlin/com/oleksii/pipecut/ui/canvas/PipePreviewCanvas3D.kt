@@ -27,12 +27,13 @@ fun PipePreviewCanvas3D(
         modifier = modifier.size(120.dp),
     ) {
         val box = CanvasBox(size.width, size.height, PAD_PX)
-        val (topRim, bottomRim) = rimCurves3D(development, pipe, box)
-        val cut = cutCurve3D(development, pipe, box)
-        if (topRim.size < 2 || cut.size < 2) return@Canvas
-        drawClosedPolyline(topRim, pipeColor, strokeWidth = 1.5f)
-        drawClosedPolyline(bottomRim, pipeColor, strokeWidth = 1.5f)
-        drawClosedPolyline(cut, cutColor, strokeWidth = 2.5f)
+        val geometry = pipePreviewGeometry3D(development, pipe, box)
+        if (geometry.topRim.size < 2 || geometry.cut.size < 2) return@Canvas
+        // 3D cut closes correctly: φ = 0 and φ = 360 are the same point on
+        // the cylinder. (The 2D unwrapped cut intentionally stays open.)
+        drawClosedPolyline(geometry.topRim, pipeColor, strokeWidth = 1.5f)
+        drawClosedPolyline(geometry.bottomRim, pipeColor, strokeWidth = 1.5f)
+        drawClosedPolyline(geometry.cut, cutColor, strokeWidth = 2.5f)
     }
 }
 

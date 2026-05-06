@@ -43,7 +43,10 @@ fun DevelopmentCanvas2D(
             for (i in 1 until canvasPoints.size) {
                 lineTo(canvasPoints[i].x, canvasPoints[i].y)
             }
-            lineTo(canvasPoints.first().x, canvasPoints.first().y)
+            // No lineTo(first) — φ = 0 and φ = 360 sit at OPPOSITE edges of
+            // the unwrapped sheet. The virtual seam point appended by
+            // developmentToCanvas2D already extends the polyline to the
+            // right margin.
         }
         drawPath(path = path, color = outlineColor, style = Stroke(width = 2.5f))
     }

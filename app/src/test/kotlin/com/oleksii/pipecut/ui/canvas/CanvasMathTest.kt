@@ -59,7 +59,7 @@ class CanvasMathTest {
     }
 
     @Test
-    fun `developmentToCanvas2D returns one point per development point`() {
+    fun `developmentToCanvas2D appends a virtual seam point at the right edge`() {
         val dev = Development(
             points = listOf(
                 DevPoint(0.0, 50.0),
@@ -69,8 +69,10 @@ class CanvasMathTest {
             ),
         )
         val pts = developmentToCanvas2D(dev, pipe, box)
-        assertEquals(4, pts.size)
+        assertEquals(5, pts.size, "must include 4 sampled points + 1 virtual seam point")
         assertEquals(0f, pts[0].x, 1f)
+        assertEquals(box.widthPx, pts.last().x, 1f)
+        assertEquals(pts[0].y, pts.last().y, 1e-3f)
     }
 
     @Test
@@ -95,7 +97,7 @@ class CanvasMathTest {
     }
 
     @Test
-    fun `cutCurve3D returns one point per development point`() {
+    fun `pipePreviewGeometry3D returns one cut point per development point and uniform rim sampling`() {
         val dev = Development(
             points = listOf(
                 DevPoint(0.0, 100.0),
@@ -104,23 +106,31 @@ class CanvasMathTest {
                 DevPoint(270.0, 120.0),
             ),
         )
-        val pts = cutCurve3D(dev, pipe, box)
-        assertEquals(4, pts.size)
-        for (p in pts) {
+        val geometry = pipePreviewGeometry3D(dev, pipe, box, samples = 36)
+        assertEquals(4, geometry.cut.size)
+        assertEquals(36, geometry.topRim.size)
+        assertEquals(36, geometry.bottomRim.size)
+        val all = geometry.cut + geometry.topRim + geometry.bottomRim
+        for (p in all) {
             assertTrue(p.x.isFinite() && p.y.isFinite())
         }
     }
 
     @Test
-    fun `rimCurves3D returns the requested sample count for each rim`() {
+    fun `pipePreviewGeometry3D fits cut and rims into the same canvas box`() {
         val dev = Development(
             points = listOf(
                 DevPoint(0.0, 100.0),
+                DevPoint(90.0, 80.0),
                 DevPoint(180.0, 100.0),
+                DevPoint(270.0, 120.0),
             ),
         )
-        val (top, bottom) = rimCurves3D(dev, pipe, box, samples = 36)
-        assertEquals(36, top.size)
-        assertEquals(36, bottom.size)
+        val geometry = pipePreviewGeometry3D(dev, pipe, box, samples = 36)
+        val all = geometry.cut + geometry.topRim + geometry.bottomRim
+        for (p in all) {
+            assertTrue(p.x in 0f..box.widthPx, "x out of box: ${p.x}")
+            assertTrue(p.y in 0f..box.heightPx, "y out of box: ${p.y}")
+        }
     }
 }

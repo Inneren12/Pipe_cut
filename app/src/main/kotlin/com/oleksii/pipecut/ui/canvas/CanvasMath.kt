@@ -37,16 +37,25 @@ fun unwrappedToCanvas(
     return CanvasPoint(xCanvas, yCanvas)
 }
 
-/** Convenience: full development → list of canvas points, ready to stroke as a polyline. */
+/**
+ * Convenience: full development → list of canvas points, ready to
+ * stroke as an open polyline. Appends one virtual seam point at the
+ * right edge so the line visually reaches φ = 360° without faking a
+ * diagonal close.
+ */
 fun developmentToCanvas2D(
     development: Development,
     pipe: PipeSpec,
     box: CanvasBox,
 ): List<CanvasPoint> {
+    if (development.points.isEmpty()) return emptyList()
     val yMin = development.minLengthMm ?: 0.0
     val yMax = development.maxLengthMm ?: yMin
     val range = yMin..yMax
-    return development.points.map { unwrappedToCanvas(it, pipe, range, box) }
+    val sampled = development.points.map { unwrappedToCanvas(it, pipe, range, box) }
+    val firstY = sampled.first().y
+    val rightEdgeX = box.padPx + box.innerWidth
+    return sampled + CanvasPoint(rightEdgeX, firstY)
 }
 
 /** Cabinet projection of a 3D point. */
@@ -113,29 +122,23 @@ private fun rimWorld(
     }
 }
 
-/** Builds the 3D cut curve points in projected canvas space, aligned to the same fit as the rims. */
-fun cutCurve3D(
-    development: Development,
-    pipe: PipeSpec,
-    box: CanvasBox,
-    samples: Int = 72,
-): List<CanvasPoint> {
-    val zTop = development.maxLengthMm ?: 0.0
-    val cut = cutWorld(development, pipe)
-    val top = rimWorld(pipe, zTop, samples)
-    val bottom = rimWorld(pipe, 0.0, samples)
-    val combined = cut + top + bottom
-    val fitted = fitWorldToCanvas(combined, box)
-    return fitted.subList(0, cut.size)
-}
+/**
+ * Projected canvas-space geometry for the 3D pipe preview, all three
+ * curves fitted together so the cut visibly aligns with the rims.
+ */
+data class PipePreviewGeometry(
+    val cut: List<CanvasPoint>,
+    val topRim: List<CanvasPoint>,
+    val bottomRim: List<CanvasPoint>,
+)
 
-/** Top and bottom rim ellipses for the 3D preview, sampled and projected. */
-fun rimCurves3D(
+/** Builds the 3D pipe preview in projected canvas space. */
+fun pipePreviewGeometry3D(
     development: Development,
     pipe: PipeSpec,
     box: CanvasBox,
     samples: Int = 72,
-): Pair<List<CanvasPoint>, List<CanvasPoint>> {
+): PipePreviewGeometry {
     val zTop = development.maxLengthMm ?: 0.0
     val cut = cutWorld(development, pipe)
     val top = rimWorld(pipe, zTop, samples)
@@ -144,5 +147,9 @@ fun rimCurves3D(
     val fitted = fitWorldToCanvas(combined, box)
     val cutEnd = cut.size
     val topEnd = cutEnd + top.size
-    return fitted.subList(cutEnd, topEnd) to fitted.subList(topEnd, topEnd + bottom.size)
+    return PipePreviewGeometry(
+        cut = fitted.subList(0, cutEnd),
+        topRim = fitted.subList(cutEnd, topEnd),
+        bottomRim = fitted.subList(topEnd, topEnd + bottom.size),
+    )
 }
