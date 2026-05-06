@@ -10,6 +10,76 @@ import kotlin.math.sin
 /** A 2D point in canvas pixel space. */
 data class CanvasPoint(val x: Float, val y: Float)
 
+/**
+ * Pan + scale applied to a single canvas. Stored in canvas-pixel
+ * units. Default is identity. Limits enforced by [clampTransform].
+ */
+data class CanvasTransform(
+    val scalePx: Float = 1.0f,
+    val panXPx: Float = 0.0f,
+    val panYPx: Float = 0.0f,
+) {
+    companion object {
+        const val MIN_SCALE: Float = 0.5f
+        const val MAX_SCALE: Float = 8.0f
+        val Identity: CanvasTransform = CanvasTransform()
+    }
+}
+
+/** Apply a transform to a canvas-pixel point, around the canvas center. */
+fun applyTransform(point: CanvasPoint, box: CanvasBox, t: CanvasTransform): CanvasPoint {
+    val cx = box.widthPx / 2f
+    val cy = box.heightPx / 2f
+    val x = cx + (point.x - cx) * t.scalePx + t.panXPx
+    val y = cy + (point.y - cy) * t.scalePx + t.panYPx
+    return CanvasPoint(x, y)
+}
+
+/**
+ * Clamp [proposed] to the documented limits. Scale is clamped to
+ * [MIN_SCALE, MAX_SCALE]. Pan is limited so at least ~25% of the
+ * scaled content rectangle stays inside the viewport.
+ */
+fun clampTransform(proposed: CanvasTransform, box: CanvasBox): CanvasTransform {
+    val scale = proposed.scalePx.coerceIn(CanvasTransform.MIN_SCALE, CanvasTransform.MAX_SCALE)
+    val halfContentW = box.widthPx / 2f * scale
+    val halfContentH = box.heightPx / 2f * scale
+    val maxPanX = halfContentW * 0.75f
+    val maxPanY = halfContentH * 0.75f
+    return CanvasTransform(
+        scalePx = scale,
+        panXPx = proposed.panXPx.coerceIn(-maxPanX, maxPanX),
+        panYPx = proposed.panYPx.coerceIn(-maxPanY, maxPanY),
+    )
+}
+
+/** Compose a delta from a transformable callback into the current transform. */
+fun composeTransform(
+    current: CanvasTransform,
+    panChangePx: Pair<Float, Float>,
+    zoomChange: Float,
+    box: CanvasBox,
+): CanvasTransform {
+    val proposed = CanvasTransform(
+        scalePx = current.scalePx * zoomChange,
+        panXPx = current.panXPx + panChangePx.first,
+        panYPx = current.panYPx + panChangePx.second,
+    )
+    return clampTransform(proposed, box)
+}
+
+/**
+ * Rotate a (x, z) world point by [degrees] around the y-axis (the
+ * pipe's axial direction). Used by the 3D preview to let the user
+ * inspect the cut from a different angle.
+ */
+fun rotateAroundY(x: Double, z: Double, degrees: Float): Pair<Double, Double> {
+    val rad = Math.toRadians(degrees.toDouble())
+    val c = kotlin.math.cos(rad)
+    val s = kotlin.math.sin(rad)
+    return (x * c + z * s) to (-x * s + z * c)
+}
+
 /** Padded canvas rectangle for layout math. */
 data class CanvasBox(
     val widthPx: Float,
@@ -95,30 +165,30 @@ fun fitWorldToCanvas(
     }
 }
 
-private fun cutWorld(
+private fun cutWorldRotated(
     development: Development,
     pipe: PipeSpec,
+    rotationYDeg: Float,
 ): List<Pair<Double, Double>> {
     val r = pipe.radiusMm
     return development.points.map { p ->
         val phiRad = Math.toRadians(p.phiDeg)
-        cabinetProject(
-            x = r * cos(phiRad),
-            y = p.lengthMm,
-            z = r * sin(phiRad),
-        )
+        val (xr, zr) = rotateAroundY(r * cos(phiRad), r * sin(phiRad), rotationYDeg)
+        cabinetProject(x = xr, y = p.lengthMm, z = zr)
     }
 }
 
-private fun rimWorld(
+private fun rimWorldRotated(
     pipe: PipeSpec,
     zAxial: Double,
     samples: Int,
+    rotationYDeg: Float,
 ): List<Pair<Double, Double>> {
     val r = pipe.radiusMm
     return (0 until samples).map {
         val phi = 2.0 * PI * it / samples
-        cabinetProject(r * cos(phi), zAxial, r * sin(phi))
+        val (xr, zr) = rotateAroundY(r * cos(phi), r * sin(phi), rotationYDeg)
+        cabinetProject(xr, zAxial, zr)
     }
 }
 
@@ -138,11 +208,12 @@ fun pipePreviewGeometry3D(
     pipe: PipeSpec,
     box: CanvasBox,
     samples: Int = 72,
+    rotationYDeg: Float = 0f,
 ): PipePreviewGeometry {
     val zTop = development.maxLengthMm ?: 0.0
-    val cut = cutWorld(development, pipe)
-    val top = rimWorld(pipe, zTop, samples)
-    val bottom = rimWorld(pipe, 0.0, samples)
+    val cut = cutWorldRotated(development, pipe, rotationYDeg)
+    val top = rimWorldRotated(pipe, zTop, samples, rotationYDeg)
+    val bottom = rimWorldRotated(pipe, 0.0, samples, rotationYDeg)
     val combined = cut + top + bottom
     val fitted = fitWorldToCanvas(combined, box)
     val cutEnd = cut.size
