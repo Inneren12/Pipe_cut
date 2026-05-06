@@ -6,6 +6,28 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Changed — PR3 (fixup)
+- `CutRequestValidator` and `DevelopmentValidator` now reject `Double.NaN`,
+  `Double.POSITIVE_INFINITY`, and `Double.NEGATIVE_INFINITY` for every
+  numeric field, using the existing error variants (no API change).
+- `Validated.invalid(errors: List<…>)` defensively copies the input list so
+  later mutations cannot break the non-empty invariant.
+- `Development.maxLengthMm` and `Development.minLengthMm` are now `Double?`
+  (via `maxOfOrNull` / `minOfOrNull`), matching the PR2 v2 spec. Empty
+  developments no longer throw on access.
+
+### Added — PR3
+- Validation layer in `:core/validation`:
+  - `Validated<T>` sealed type with `Valid` / `Invalid` (accumulating errors).
+  - `ValidationError` sealed interface — typed catalog of every rule violation,
+    each variant carrying the offending value.
+  - `CutRequestValidator` — single-pass validator for `CutRequest` (pipe,
+    cut plane, optional saddle). Accumulates all errors.
+  - `DevelopmentValidator` — single-pass validator for calculator output
+    (non-empty, phi in [0, 360), non-negative length, strictly ascending phi).
+- Unit tests covering positive cases, every error variant, and error
+  accumulation for both validators.
+
 ### Added — PR2
 - Domain model in `:core/model`:
   - `PipeSpec` with derived `radiusMm` and `circumferenceMm`.
