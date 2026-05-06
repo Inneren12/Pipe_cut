@@ -6,7 +6,7 @@ package com.oleksii.pipecut.ui.result
  * stays unit-testable on the JVM.
  */
 object ResultStrings {
-    const val SADDLE_NOT_IMPLEMENTED: String = "Saddle cuts arrive in PR5"
+    const val SADDLE_NOT_IMPLEMENTED: String = "Saddle cuts are not available in this build."
     const val EMPTY_HINT: String = "Enter values and tap Calculate"
     const val TABLE_HEADER_PHI: String = "φ (°)"
     const val TABLE_HEADER_LENGTH: String = "L (mm)"
