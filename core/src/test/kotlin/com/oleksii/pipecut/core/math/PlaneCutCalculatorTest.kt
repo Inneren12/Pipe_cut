@@ -268,4 +268,23 @@ class PlaneCutCalculatorTest {
     fun `does not throw on a valid request`() {
         PlaneCutCalculator.calculate(request(tiltDeg = 15.0, clockingDeg = 30.0, offsetMm = 100.0))
     }
+
+    @Test
+    fun `rejects plane cut when offset is too small for tilted plane`() {
+        // D=200 → R=100; α=60° → amplitude = 100·tan(60°) ≈ 173.2;
+        // L₀ = 10 < amplitude → cut would extend past the end face.
+        val req = request(
+            diameterMm = 200.0,
+            tiltDeg = 60.0,
+            clockingDeg = 0.0,
+            offsetMm = 10.0,
+            pointCount = PointCount.P36,
+        )
+        val ex = assertThrows<IllegalArgumentException> {
+            PlaneCutCalculator.calculate(req)
+        }
+        val message = ex.message ?: ""
+        assertTrue(message.contains("offsetMm", ignoreCase = true), "Got: $message")
+        assertTrue(message.contains("too small", ignoreCase = true), "Got: $message")
+    }
 }

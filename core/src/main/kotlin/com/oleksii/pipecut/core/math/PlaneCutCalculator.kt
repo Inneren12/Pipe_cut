@@ -44,13 +44,23 @@ object PlaneCutCalculator : CutCalculator {
             is Validated.Valid -> Unit
         }
 
-        val r = request.pipe.diameterMm / 2.0
+        val r = request.pipe.radiusMm
         val alphaRad = Math.toRadians(request.cut.tiltDeg)
         val betaRad = Math.toRadians(request.cut.clockingDeg)
         val l0 = request.cut.offsetMm
         val n = request.pointCount.value
         val step = 360.0 / n
         val amplitude = r * tan(alphaRad)
+        // Plane-specific precondition: the cut must fit fully inside the pipe
+        // from the chosen end face. If L₀ < amplitude, the trough of the cosine
+        // would go behind the end face and produce negative lengths. This is a
+        // domain error (geometrically invalid), not a calculator bug.
+        val minPossibleLength = l0 - amplitude
+        require(minPossibleLength >= 0.0) {
+            "Invalid plane cut: offsetMm=$l0 is too small for radius=$r and " +
+                "tiltDeg=${request.cut.tiltDeg}; minimum generated length would be " +
+                "$minPossibleLength mm. Increase offsetMm to at least $amplitude mm."
+        }
 
         val points = (0 until n).map { i ->
             val phiDeg = i * step
