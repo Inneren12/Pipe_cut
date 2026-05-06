@@ -25,6 +25,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.oleksii.pipecut.PipeCutApplication
+import com.oleksii.pipecut.ui.presets.MAX_NAME_LENGTH
 import com.oleksii.pipecut.ui.presets.Preset
 import com.oleksii.pipecut.ui.presets.PresetDeleteDialog
 import com.oleksii.pipecut.ui.presets.PresetLoadError
@@ -130,13 +131,29 @@ fun InputScreen(
             },
             onConfirm = {
                 val trimmed = saveName.trim()
-                val matchingExisting = presets.firstOrNull {
-                    it.name.equals(trimmed, ignoreCase = true)
-                }
-                if (matchingExisting != null) {
-                    pendingOverwriteName = trimmed
-                } else {
+                if (lastValidRequest == null ||
+                    trimmed.isEmpty() ||
+                    trimmed.length > MAX_NAME_LENGTH
+                ) {
+                    // Route through the ViewModel so the typed error
+                    // surfaces in the save dialog. Routing through
+                    // the overwrite dialog here would swallow the
+                    // failure when the user happens to type a name
+                    // that already exists.
                     presetsViewModel.trySave(saveName, lastValidRequest, allowOverwrite = false)
+                } else {
+                    val matchingExisting = presets.firstOrNull {
+                        it.name.equals(trimmed, ignoreCase = true)
+                    }
+                    if (matchingExisting != null) {
+                        pendingOverwriteName = trimmed
+                    } else {
+                        presetsViewModel.trySave(
+                            saveName,
+                            lastValidRequest,
+                            allowOverwrite = false,
+                        )
+                    }
                 }
             },
             onDismiss = {

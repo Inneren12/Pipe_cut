@@ -125,6 +125,15 @@ class PresetsViewModelTest {
     }
 
     @Test
+    fun `trySave with null request and matching existing name still surfaces NoValidRequest`() = runTest {
+        val repo = SpyRepository()
+        val vm = PresetsViewModel(repo)
+        vm.trySave("alpha", request = null, allowOverwrite = false)
+        assertSame(PresetSaveError.NoValidRequest, vm.lastSaveError.value)
+        assertEquals(0, repo.saveIfAllowedCalls)
+    }
+
+    @Test
     fun `delete removes the preset`() = runTest {
         val repo = SpyRepository()
         val vm = PresetsViewModel(repo)
