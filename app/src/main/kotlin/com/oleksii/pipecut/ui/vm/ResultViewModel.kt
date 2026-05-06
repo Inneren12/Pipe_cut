@@ -1,7 +1,6 @@
 package com.oleksii.pipecut.ui.vm
 
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewModelScope
 import com.oleksii.pipecut.core.math.PlaneCutCalculator
 import com.oleksii.pipecut.core.model.CutRequest
 import com.oleksii.pipecut.core.model.Development
@@ -70,8 +69,4 @@ class ResultViewModel : ViewModel() {
         ResultUiState.SaddleNotImplemented -> null
     }
 
-    // viewModelScope kept for forward compatibility with PR8/PR10
-    // (background work, debouncing, etc.). Suppress unused-warning here.
-    @Suppress("unused")
-    private val scope = viewModelScope
 }
