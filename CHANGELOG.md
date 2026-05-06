@@ -72,6 +72,38 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   - Saddle toggle with collapsible group of four saddle-only fields.
   - Decimal separator tolerance (accepts `,` and `.`).
 - JUnit 5 wired in `:app` for ViewModel and string-mapping tests.
+### Changed — PR5 (fixup)
+- `SaddleCutCalculator` now rejects requests where `cut.tiltDeg` or
+  `cut.clockingDeg` is non-zero. PR5 implements pure saddle geometry
+  only; combined plane-trim is out of scope.
+- Tightened the eccentric precondition: branch radius + offset must be
+  ≤ partner radius for a full 360° development. The previous check was
+  redundant with the `r2 ≥ r1` rule and let invalid eccentric requests
+  fail late inside the bisection loop.
+- Documented the real-world drawing's geometry bound by adding a test
+  that L₀ = 250 with branch Ø114.3 + main Ø914.4 + θ = 62° is rejected
+  as offset-too-small. The positive fixture remains at L₀ = 600.
+- Eccentric solver now has a back-substitution test that verifies every
+  output point lies on the partner cylinder within `1e-9`.
+- Removed leftover `assertNotEquals("", message)` line and unused import.
+
+### Added — PR5
+- `SaddleCutCalculator` in `:core/math`: implements `CutCalculator` for
+  the saddle case (branch pipe fitted onto a partner cylinder).
+  - Analytic solution for centered intersections (`saddle.offsetMm == 0`).
+  - Bisection-based numeric solver for eccentric intersections.
+  - Plane-specific preconditions: rejects `R₂ < R₁`, `R₁ > R₂ + e`, and
+    `L₀ < min(z(φ))`.
+- `CutCalculatorDispatcher` in `:core/math`: single entry point that
+  routes to `PlaneCutCalculator` or `SaddleCutCalculator` based on
+  `request.saddle`.
+- Reference test fixture: branch Ø114.3, main Ø914.4, θ = 62°, L₀ = 600
+  — safe positive-length geometry derived from the user's drawing.
+  L₀ = 250 from the drawing itself is too small for this geometry and
+  is documented by a dedicated negative test.
+- Numeric tests for perpendicular tee, clocking, eccentric offset
+  consistency, and dispatcher routing.
+
 ### Changed — PR4 (fixup)
 - `PlaneCutCalculator` now rejects plane-cut requests whose minimum
   generated length would be negative (`L₀ < R · tan(α)`). The cut would
