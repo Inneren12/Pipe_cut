@@ -1,5 +1,6 @@
 package com.oleksii.pipecut.ui.result
 
+import com.oleksii.pipecut.core.model.CutRequest
 import com.oleksii.pipecut.core.model.Development
 
 /**
@@ -8,16 +9,17 @@ import com.oleksii.pipecut.core.model.Development
  * Distinct states drive what the user sees:
  *
  *  - [Empty] — no valid request yet. Show a hint.
- *  - [Computed] — last successful calculation. Show the table.
- *  - [Error] — calculator rejected the request (e.g., offset too small).
- *    Show the error message and keep [previous] visible if any.
- *  - [SaddleNotImplemented] — historical placeholder; unreachable from
- *    `ResultViewModel` since the dispatcher swap. Kept temporarily for
- *    sealed-exhaustiveness in callers; scheduled for removal in PR12.
- *
- * `previous` is kept across [Error] states so that an unrelated edit that
- * temporarily breaks the geometry does not blank the table on screen.
- * This mirrors the sticky `lastValidRequest` contract from PR6.
+ *  - [Computed] — last successful calculation. Carries the [request]
+ *    that produced [development] so downstream consumers (canvas,
+ *    future labels) cannot drift to a different request while the
+ *    user keeps editing.
+ *  - [Error] — calculator rejected the request. Carries the optional
+ *    previous development AND the request that produced it, so the
+ *    canvas keeps drawing the right curve scaled by the right pipe.
+ *  - [SaddleNotImplemented] — historical placeholder; unreachable
+ *    from `ResultViewModel` since the dispatcher swap. Kept
+ *    temporarily for sealed-exhaustiveness in callers; removal
+ *    scheduled for PR12.
  */
 sealed interface ResultUiState {
     object Empty : ResultUiState
@@ -29,9 +31,14 @@ sealed interface ResultUiState {
     )
     object SaddleNotImplemented : ResultUiState
 
-    data class Computed(val development: Development) : ResultUiState
+    data class Computed(
+        val request: CutRequest,
+        val development: Development,
+    ) : ResultUiState
+
     data class Error(
         val message: String,
+        val previousRequest: CutRequest?,
         val previous: Development?,
     ) : ResultUiState
 }

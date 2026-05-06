@@ -28,9 +28,6 @@ class ResultViewModel : ViewModel() {
      */
     fun submit(request: CutRequest?) {
         if (request == null) {
-            // Sticky semantics on the input side mean we should not see this
-            // after the first successful submission. Keep Empty for the
-            // pre-first-submission window.
             if (_uiState.value !is ResultUiState.Computed && _uiState.value !is ResultUiState.Error) {
                 _uiState.value = ResultUiState.Empty
             }
@@ -42,28 +39,29 @@ class ResultViewModel : ViewModel() {
     private fun compute(request: CutRequest): ResultUiState {
         return try {
             val development: Development = CutCalculatorDispatcher.calculate(request)
-            ResultUiState.Computed(development)
+            ResultUiState.Computed(request = request, development = development)
         } catch (e: IllegalArgumentException) {
+            val (prevRequest, prevDev) = previousPairOrNull()
             ResultUiState.Error(
                 message = ResultStrings.errorMessage(e),
-                previous = previousDevelopmentOrNull(),
+                previousRequest = prevRequest,
+                previous = prevDev,
             )
         } catch (e: IllegalStateException) {
-            // Calculator self-check failed. Treat as a programmer/math bug
-            // surfaced to the user — same UI treatment, distinct log later.
+            val (prevRequest, prevDev) = previousPairOrNull()
             ResultUiState.Error(
                 message = ResultStrings.errorMessage(e),
-                previous = previousDevelopmentOrNull(),
+                previousRequest = prevRequest,
+                previous = prevDev,
             )
         }
     }
 
-    private fun previousDevelopmentOrNull(): Development? = when (val s = _uiState.value) {
-        is ResultUiState.Computed -> s.development
-        is ResultUiState.Error -> s.previous
+    private fun previousPairOrNull(): Pair<CutRequest?, Development?> = when (val s = _uiState.value) {
+        is ResultUiState.Computed -> s.request to s.development
+        is ResultUiState.Error -> s.previousRequest to s.previous
         ResultUiState.Empty,
         @Suppress("DEPRECATION")
-        ResultUiState.SaddleNotImplemented -> null
+        ResultUiState.SaddleNotImplemented -> null to null
     }
-
 }

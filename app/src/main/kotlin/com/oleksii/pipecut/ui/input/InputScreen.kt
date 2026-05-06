@@ -32,6 +32,7 @@ import com.oleksii.pipecut.ui.presets.PresetLoadError
 import com.oleksii.pipecut.ui.presets.PresetSaveDialog
 import com.oleksii.pipecut.ui.presets.PresetsStrings
 import com.oleksii.pipecut.ui.presets.presetsBar
+import com.oleksii.pipecut.ui.canvas.canvasPanel
 import com.oleksii.pipecut.ui.result.resultPanel
 import com.oleksii.pipecut.ui.vm.InputViewModel
 import com.oleksii.pipecut.ui.vm.PresetsViewModel
@@ -119,6 +120,7 @@ fun InputScreen(
                 )
             }
             resultPanel(resultState)
+            canvasPanel(resultState)
         }
     }
 
