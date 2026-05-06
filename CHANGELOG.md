@@ -6,6 +6,38 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Changed — PR6 (fixup 2)
+- New `InputViewModel.applyPreset(preset)` atomically rewrites every
+  form field, including explicit clears of all four saddle fields
+  when the loaded preset has no saddle. Previously the screen called
+  the per-field setters one at a time, leaving stale saddle values
+  behind after loading a flat preset following a saddle preset.
+- `applyPreset` returns a typed `PresetLoadError?` and refuses the
+  load when `pointCountValue` does not map to a known `PointCount`.
+  Previously a hybrid load could occur silently.
+
+### Changed — PR10 (fixup)
+- `PresetsRepository` gains
+  `suspend fun saveIfAllowed(preset, maxPresets, allowOverwrite)`
+  which performs duplicate / limit checks **inside** `store.edit { ... }`,
+  closing a race against DataStore's initial-load window where
+  `presets.value` was still the empty initial value.
+- `PresetsViewModel.trySave` delegates to the repository for those
+  storage-aware checks; it still pre-flights empty/too-long/null-request
+  validation client-side.
+- Name uniqueness and sort are now case-insensitive.
+- New overwrite-confirm flow: a save attempt whose trimmed name
+  matches an existing preset case-insensitively first surfaces a
+  `"Name already exists. Overwrite?"` dialog. Confirming retries
+  with `allowOverwrite = true`.
+- Preset chips: `AssistChip(onClick = onLoad)` plus a small trailing
+  delete `IconButton`. The previous `combinedClickable` long-press
+  handling on the chip and the `LONG_PRESS_HINT` text are removed.
+- `PresetsStrings` now owns the delete-confirm and load-error
+  strings; no in-line literals in the bar.
+- `PresetsRepository.save(preset)` is `@Deprecated` (kept for the
+  pre-existing test path); removal scheduled for PR12.
+
 ### Added — PR10
 - Named presets in `:app/ui/presets`:
   - `Preset` (`@Serializable`) and `CutRequest.toPreset(name)` extension.
@@ -18,7 +50,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   - `LazyListScope.presetsBar(...)` extension and stateless
     `PresetSaveDialog` / `PresetDeleteDialog` Composables.
 - `InputScreen` shows the preset bar above the form. Tap a preset to
-  load it into every form field; long-press to confirm-and-delete.
+  load it into every form field; tap the delete icon next to a chip
+  to delete.
 - Application-level service-locator pattern (`PipeCutApplication`)
   wires the DataStore to the ViewModel without DI.
 - New gradle dependencies: `androidx.datastore:datastore-preferences`
