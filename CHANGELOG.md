@@ -6,6 +6,21 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added — PR7
+- `ResultViewModel`, `ResultTable`, `ResultUiState`, `ResultStrings` in
+  `:app/ui/result` and `:app/ui/vm`:
+  - Subscribes to `InputViewModel.lastValidRequest` and runs
+    `PlaneCutCalculator` on every new flat-cut request.
+  - Renders the `(φ, L)` points as a table with sticky header.
+  - Saddle requests show a placeholder banner ("Saddle cuts arrive in
+    PR5"); a follow-up PR will swap to `CutCalculatorDispatcher` once
+    PR5 is merged.
+  - Calculator exceptions surface as an in-line error banner; the
+    previous successful result remains visible beneath it (sticky UX).
+- `InputScreen` now scrolls the form and the result table together.
+- Unit tests cover Empty / SaddleNotImplemented / Computed / Error
+  transitions and the sticky `previous` carry-over.
+
 ### Changed — PR6 (fixup)
 - CI now runs `:app:testDebugUnitTest` and `:core:check` so the new
   ViewModel and string-mapping tests gate every merge.
