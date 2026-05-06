@@ -6,6 +6,23 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added — PR8
+- New canvas panel in `:app/ui/canvas`:
+  - `DevelopmentCanvas2D` — unwrapped pipe surface with the cut line
+    drawn as a closed polyline. The shape the welder traces onto a
+    paper template, wraps around the pipe, and scribes.
+  - `PipePreviewCanvas3D` — small isometric thumbnail of the pipe
+    with the cut highlighted, for sanity-checking the entered
+    geometry.
+- `LazyListScope.canvasPanel(resultState, request)` extension wires
+  both visuals into the screen-level `LazyColumn`, beneath the result
+  table.
+- `CanvasMath.kt` — pure JVM conversions (development-to-canvas,
+  cabinet projection) covered by unit tests including degenerate
+  y-range and single-point edge cases.
+- `CanvasStrings` with a unit test that no constant leaks PR numbers.
+- No new gradle dependencies, no new ViewModels.
+
 ### Changed — PR7 (fixup 2)
 - `ResultViewModel` now routes every request through
   `CutCalculatorDispatcher` (added in PR5). The previous direct
