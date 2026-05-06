@@ -23,6 +23,7 @@ class ResultStringsTest {
     }
 
     @Test
+    @Suppress("DEPRECATION")
     fun `saddle banner does not leak PR numbers`() {
         val text = ResultStrings.SADDLE_NOT_IMPLEMENTED
         assertFalse(

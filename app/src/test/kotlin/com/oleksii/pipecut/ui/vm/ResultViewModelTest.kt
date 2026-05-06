@@ -29,7 +29,7 @@ class ResultViewModelTest {
 
     private fun saddleRequest() = CutRequest(
         pipe = PipeSpec(diameterMm = 114.3),
-        cut = CutPlane(tiltDeg = 0.0, clockingDeg = 0.0, offsetMm = 250.0),
+        cut = CutPlane(tiltDeg = 0.0, clockingDeg = 0.0, offsetMm = 600.0),
         saddle = SaddleSpec(
             partnerDiameterMm = 914.4,
             intersectionAngleDeg = 62.0,
@@ -63,10 +63,13 @@ class ResultViewModelTest {
     }
 
     @Test
-    fun `submitting a saddle request yields SaddleNotImplemented`() {
+    fun `submitting a valid saddle request yields Computed`() {
         val vm = ResultViewModel()
         vm.submit(saddleRequest())
-        assertSame(ResultUiState.SaddleNotImplemented, vm.uiState.value)
+        val state = vm.uiState.value
+        assertTrue(state is ResultUiState.Computed, "got $state")
+        state as ResultUiState.Computed
+        assertEquals(36, state.development.points.size)
     }
 
     @Test

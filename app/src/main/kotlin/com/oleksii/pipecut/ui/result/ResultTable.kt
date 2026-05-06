@@ -29,6 +29,7 @@ import java.util.Locale
  */
 @OptIn(ExperimentalFoundationApi::class)
 fun LazyListScope.resultPanel(state: ResultUiState) {
+    @Suppress("DEPRECATION") // SaddleNotImplemented kept for sealed-exhaustiveness, removed in PR12.
     when (state) {
         ResultUiState.Empty -> item("result-hint-empty") {
             HintBlock(text = ResultStrings.EMPTY_HINT)

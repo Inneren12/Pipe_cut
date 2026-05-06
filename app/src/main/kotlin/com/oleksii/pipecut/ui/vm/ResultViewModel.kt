@@ -1,7 +1,7 @@
 package com.oleksii.pipecut.ui.vm
 
 import androidx.lifecycle.ViewModel
-import com.oleksii.pipecut.core.math.PlaneCutCalculator
+import com.oleksii.pipecut.core.math.CutCalculatorDispatcher
 import com.oleksii.pipecut.core.model.CutRequest
 import com.oleksii.pipecut.core.model.Development
 import com.oleksii.pipecut.ui.result.ResultStrings
@@ -36,16 +36,12 @@ class ResultViewModel : ViewModel() {
             }
             return
         }
-        if (request.saddle != null) {
-            _uiState.value = ResultUiState.SaddleNotImplemented
-            return
-        }
         _uiState.value = compute(request)
     }
 
     private fun compute(request: CutRequest): ResultUiState {
         return try {
-            val development: Development = PlaneCutCalculator.calculate(request)
+            val development: Development = CutCalculatorDispatcher.calculate(request)
             ResultUiState.Computed(development)
         } catch (e: IllegalArgumentException) {
             ResultUiState.Error(
@@ -66,6 +62,7 @@ class ResultViewModel : ViewModel() {
         is ResultUiState.Computed -> s.development
         is ResultUiState.Error -> s.previous
         ResultUiState.Empty,
+        @Suppress("DEPRECATION")
         ResultUiState.SaddleNotImplemented -> null
     }
 

@@ -6,6 +6,26 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Changed — PR7 (fixup 2)
+- `ResultViewModel` now routes every request through
+  `CutCalculatorDispatcher` (added in PR5). The previous direct
+  `PlaneCutCalculator` call and the `SaddleNotImplemented` short-circuit
+  are gone; saddle requests with valid geometry now produce real
+  `Computed` results.
+- `ResultUiState.SaddleNotImplemented` and
+  `ResultStrings.SADDLE_NOT_IMPLEMENTED` are `@Deprecated`. They remain
+  in the sealed hierarchy for one release to keep the diff focused;
+  PR12 (polish) removes them along with the `resultPanel` branch.
+- `ResultUiState` KDoc no longer references PR5 — the project history
+  belongs in CHANGELOG, not in production code comments.
+- New `ResultFormattersTest`: pins `formatPhi`/`formatLength` to
+  `Locale.US` output regardless of the JVM default locale, so a
+  device set to `ru-RU` or `de-DE` still prints `100.50`, not
+  `100,50`, on the marking sheet.
+- `ResultViewModelTest` updated: the saddle test now expects
+  `Computed`, the helper builds a saddle request with safe positive
+  geometry (`L₀ = 600`), matching the PR5 reference fixture.
+
 ### Changed — PR7 (fixup)
 - `InputScreen` is now a single root `LazyColumn`. The previous
   `Column.verticalScroll` + nested `LazyColumn` combination crashes
