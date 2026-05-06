@@ -47,8 +47,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - `CutCalculatorDispatcher` in `:core/math`: single entry point that
   routes to `PlaneCutCalculator` or `SaddleCutCalculator` based on
   `request.saddle`.
-- Reference test fixture: branch Ø114.3, main Ø914.4, θ = 62°, L₀ = 250
-  — the user's real drawing case.
+- Reference test fixture: branch Ø114.3, main Ø914.4, θ = 62°, L₀ = 600
+  — safe positive-length geometry derived from the user's drawing.
+  L₀ = 250 from the drawing itself is too small for this geometry and
+  is documented by a dedicated negative test.
 - Numeric tests for perpendicular tee, clocking, eccentric offset
   consistency, and dispatcher routing.
 

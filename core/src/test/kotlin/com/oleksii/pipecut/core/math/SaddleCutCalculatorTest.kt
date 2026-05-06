@@ -327,6 +327,27 @@ class SaddleCutCalculatorTest {
     }
 
     @Test
+    fun `reference drawing geometry with L0 = 250 is rejected as offset too small`() {
+        // The user's drawing pipe is 1079 mm long, so 250 mm is a plausible
+        // user input but it is geometrically below the fishmouth depth for
+        // partner Ø914.4 at θ=62°. Document the real bound: this case must
+        // fail loudly, not return garbage.
+        val req = saddleRequest(
+            diameterMm = 114.3,
+            partnerDiameterMm = 914.4,
+            intersectionAngleDeg = 62.0,
+            cutOffsetMm = 250.0,
+            pointCount = PointCount.P36,
+        )
+        val ex = assertThrows<IllegalArgumentException> {
+            SaddleCutCalculator.calculate(req)
+        }
+        val message = ex.message ?: ""
+        assertTrue(message.contains("offsetMm", ignoreCase = true), "Got: $message")
+        assertTrue(message.contains("too small", ignoreCase = true), "Got: $message")
+    }
+
+    @Test
     fun `rejects saddle request with non-zero cut tilt`() {
         val req = CutRequest(
             pipe = PipeSpec(diameterMm = 100.0),
