@@ -68,4 +68,17 @@ class ValidatedTest {
         invalid as Validated.Invalid
         assertEquals(listOf(errorA, errorB), invalid.errors)
     }
+
+    @Test
+    fun `invalid factory defensively copies the errors list`() {
+        val source = mutableListOf<ValidationError>(errorA)
+        val invalid = Validated.invalid(source)
+
+        source.clear()
+
+        assertTrue(invalid is Validated.Invalid)
+        invalid as Validated.Invalid
+        assertEquals(1, invalid.errors.size)
+        assertSame(errorA, invalid.errors.single())
+    }
 }

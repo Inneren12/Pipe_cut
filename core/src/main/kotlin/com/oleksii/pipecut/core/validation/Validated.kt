@@ -35,7 +35,12 @@ sealed interface Validated<out T> {
         fun invalid(first: ValidationError, vararg rest: ValidationError): Validated<Nothing> =
             Invalid(listOf(first) + rest.toList())
 
-        /** Builds an [Invalid] result from a non-empty list of errors. */
-        fun invalid(errors: List<ValidationError>): Validated<Nothing> = Invalid(errors)
+        /**
+         * Builds an [Invalid] result from a non-empty list of errors. The
+         * input list is **defensively copied** — later mutations to the
+         * caller's list do not affect the resulting [Invalid].
+         */
+        fun invalid(errors: List<ValidationError>): Validated<Nothing> =
+            Invalid(errors.toList())
     }
 }
