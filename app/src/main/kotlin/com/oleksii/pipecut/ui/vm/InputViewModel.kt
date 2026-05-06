@@ -12,10 +12,13 @@ import com.oleksii.pipecut.core.validation.ValidationError
 import com.oleksii.pipecut.ui.input.FieldError
 import com.oleksii.pipecut.ui.input.FieldKey
 import com.oleksii.pipecut.ui.input.InputUiState
+import com.oleksii.pipecut.ui.presets.Preset
+import com.oleksii.pipecut.ui.presets.PresetLoadError
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import java.util.Locale
 
 class InputViewModel : ViewModel() {
 
@@ -60,6 +63,49 @@ class InputViewModel : ViewModel() {
         updateField(FieldKey.SADDLE_CLOCKING) { it.copy(saddleClockingDeg = text) }
     fun onSaddleOffsetChange(text: String) =
         updateField(FieldKey.SADDLE_OFFSET) { it.copy(saddleOffsetMm = text) }
+
+    /**
+     * Atomically apply the given preset to every form field.
+     *
+     *  - Plane fields: diameter, tilt, clocking, offset overwritten.
+     *  - Saddle: when present, all four saddle fields populated and
+     *    `saddleEnabled = true`. When absent, saddle is fully cleared
+     *    so a later toggle-on does not surface leftover values.
+     *  - PointCount: validated against [PointCount.entries]. An unknown
+     *    `pointCountValue` aborts the load with
+     *    [PresetLoadError.InvalidPointCount] and no field is touched.
+     */
+    fun applyPreset(preset: Preset): PresetLoadError? {
+        val resolvedPointCount = PointCount.entries
+            .firstOrNull { it.value == preset.pointCountValue }
+            ?: return PresetLoadError.InvalidPointCount(preset.pointCountValue)
+        onDiameterChange(formatNumber(preset.pipe.diameterMm))
+        onTiltChange(formatNumber(preset.cut.tiltDeg))
+        onClockingChange(formatNumber(preset.cut.clockingDeg))
+        onOffsetChange(formatNumber(preset.cut.offsetMm))
+        val saddle = preset.saddle
+        if (saddle != null) {
+            onSaddleEnabledChange(true)
+            onPartnerDiameterChange(formatNumber(saddle.partnerDiameterMm))
+            onIntersectionAngleChange(formatNumber(saddle.intersectionAngleDeg))
+            onSaddleClockingChange(formatNumber(saddle.clockingDeg))
+            onSaddleOffsetChange(formatNumber(saddle.offsetMm))
+        } else {
+            onSaddleEnabledChange(false)
+            onPartnerDiameterChange("")
+            onIntersectionAngleChange("")
+            onSaddleClockingChange("")
+            onSaddleOffsetChange("")
+        }
+        onPointCountChange(resolvedPointCount)
+        onCalculateClicked()
+        return null
+    }
+
+    private fun formatNumber(value: Double): String {
+        val s = String.format(Locale.US, "%.6f", value).trimEnd('0').trimEnd('.')
+        return if (s.isEmpty()) "0" else s
+    }
 
     /** Called when the user taps "Calculate". Marks every field touched and validates. */
     fun onCalculateClicked() {
