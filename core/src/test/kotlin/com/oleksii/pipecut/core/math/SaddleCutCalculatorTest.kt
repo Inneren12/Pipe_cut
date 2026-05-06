@@ -147,8 +147,15 @@ class SaddleCutCalculatorTest {
         )
         val centered = SaddleCutCalculator.calculate(base)
 
+        // The closed-form quadratic naturally produces an answer that
+        // deviates from the centered formula by O(e) (the perturbation
+        // enters c via (R₁·sinφ − e)²). Bisection truncation is gone,
+        // so the only source of disagreement is this analytical drift.
+        // Use e = 1e-9 so the drift sits comfortably below the 1e-9
+        // tolerance, while still routing through the offset code path
+        // (which only short-circuits when |e| < 1e-12).
         val tinyOffset = base.copy(
-            saddle = base.saddle!!.copy(offsetMm = 1e-6),
+            saddle = base.saddle!!.copy(offsetMm = 1e-9),
         )
         val almost = SaddleCutCalculator.calculate(tinyOffset)
 
@@ -156,7 +163,7 @@ class SaddleCutCalculatorTest {
             assertEquals(
                 centered.points[i].lengthMm,
                 almost.points[i].lengthMm,
-                1e-6,
+                1e-9,
                 "i=$i centered=${centered.points[i].lengthMm} almost=${almost.points[i].lengthMm}",
             )
         }
@@ -449,6 +456,101 @@ class SaddleCutCalculatorTest {
                 "Point at index=$index phiDeg=${point.phiDeg} must lie on partner cylinder; " +
                     "distance=$distance, r2=$r2",
             )
+        }
+    }
+
+    @Test
+    fun `oblique eccentric solver output points satisfy distance to main axis equals r2`() {
+        val pipeD = 100.0
+        val partnerD = 300.0
+        val thetaDeg = 62.0
+        val psiDeg = 30.0
+        val eMm = 20.0
+        val l0 = 250.0
+        val req = saddleRequest(
+            diameterMm = pipeD,
+            partnerDiameterMm = partnerD,
+            intersectionAngleDeg = thetaDeg,
+            saddleClockingDeg = psiDeg,
+            eccentricOffsetMm = eMm,
+            cutOffsetMm = l0,
+            pointCount = PointCount.P36,
+        )
+        val result = SaddleCutCalculator.calculate(req)
+        val r1 = pipeD / 2.0
+        val r2 = partnerD / 2.0
+        val thetaRad = Math.toRadians(thetaDeg)
+        val psiRad = Math.toRadians(psiDeg)
+        for ((index, point) in result.points.withIndex()) {
+            val phiRad = Math.toRadians(point.phiDeg)
+            val angle = phiRad - psiRad
+            val px = r1 * kotlin.math.cos(angle)
+            val py = r1 * kotlin.math.sin(angle) - eMm
+            val pz = point.lengthMm - l0
+            val dx = kotlin.math.sin(thetaRad)
+            val dz = kotlin.math.cos(thetaRad)
+            val dot = px * dx + pz * dz
+            val ex = px - dot * dx
+            val ey = py
+            val ez = pz - dot * dz
+            val distance = kotlin.math.sqrt(ex * ex + ey * ey + ez * ez)
+            assertEquals(
+                r2,
+                distance,
+                1e-9,
+                "Point at index=$index phiDeg=${point.phiDeg} must lie on partner cylinder; " +
+                    "distance=$distance, r2=$r2",
+            )
+        }
+    }
+
+    @Test
+    fun `acute angle eccentric saddle is solved (regression for bracket bug)`() {
+        // r1 = 50, r2 = 200 (wide partner), e = 10, θ = 10°.
+        // r1 + e = 60 ≤ r2 = 200, so the precondition passes and the
+        // solver actually runs. With the previous bisection bracket
+        // [l0 - zMax, l0] this case threw "no intersection in expected
+        // half-bracket". The closed-form solver must succeed.
+        val pipeD = 100.0
+        val partnerD = 400.0
+        val thetaDeg = 10.0
+        val psiDeg = 0.0
+        val eMm = 10.0
+        // At acute θ the saddle reach along the branch axis grows like
+        // R₂ / sinθ ≈ 1152 mm. Pick l0 large enough for non-negative
+        // lengths.
+        val l0 = 1500.0
+        val req = saddleRequest(
+            diameterMm = pipeD,
+            partnerDiameterMm = partnerD,
+            intersectionAngleDeg = thetaDeg,
+            saddleClockingDeg = psiDeg,
+            eccentricOffsetMm = eMm,
+            cutOffsetMm = l0,
+            pointCount = PointCount.P36,
+        )
+        val result = SaddleCutCalculator.calculate(req)
+        assertEquals(36, result.points.size)
+        result.points.forEach { assertTrue(it.lengthMm >= 0.0, "negative length: ${it.lengthMm}") }
+
+        val r1 = pipeD / 2.0
+        val r2 = partnerD / 2.0
+        val thetaRad = Math.toRadians(thetaDeg)
+        val psiRad = Math.toRadians(psiDeg)
+        for (point in result.points) {
+            val phiRad = Math.toRadians(point.phiDeg)
+            val angle = phiRad - psiRad
+            val px = r1 * kotlin.math.cos(angle)
+            val py = r1 * kotlin.math.sin(angle) - eMm
+            val pz = point.lengthMm - l0
+            val dx = kotlin.math.sin(thetaRad)
+            val dz = kotlin.math.cos(thetaRad)
+            val dot = px * dx + pz * dz
+            val ex = px - dot * dx
+            val ey = py
+            val ez = pz - dot * dz
+            val distance = kotlin.math.sqrt(ex * ex + ey * ey + ez * ez)
+            assertEquals(r2, distance, 1e-9, "phi=${point.phiDeg} distance=$distance")
         }
     }
 }
