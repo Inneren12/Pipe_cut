@@ -18,6 +18,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.oleksii.pipecut.ui.canvas.canvasPanel
 import com.oleksii.pipecut.ui.result.resultPanel
+import com.oleksii.pipecut.ui.vm.CanvasViewModel
 import com.oleksii.pipecut.ui.vm.InputViewModel
 import com.oleksii.pipecut.ui.vm.ResultViewModel
 
@@ -26,6 +27,7 @@ import com.oleksii.pipecut.ui.vm.ResultViewModel
 fun InputScreen(
     inputViewModel: InputViewModel = viewModel(),
     resultViewModel: ResultViewModel = viewModel(),
+    canvasViewModel: CanvasViewModel = viewModel(),
 ) {
     val state by inputViewModel.uiState.collectAsStateWithLifecycle()
     val lastValidRequest by inputViewModel.lastValidRequest.collectAsStateWithLifecycle()
@@ -65,7 +67,7 @@ fun InputScreen(
                 )
             }
             resultPanel(resultState)
-            canvasPanel(resultState)
+            canvasPanel(resultState, canvasViewModel)
         }
     }
 }
