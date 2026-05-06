@@ -6,6 +6,25 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Changed — PR4 (fixup)
+- `PlaneCutCalculator` now rejects plane-cut requests whose minimum
+  generated length would be negative (`L₀ < R · tan(α)`). The cut would
+  need to begin behind the chosen end face, which is geometrically invalid.
+  Reported as `IllegalArgumentException`, not as the previous misleading
+  `IllegalStateException("This is a bug")`.
+- Use `PipeSpec.radiusMm` instead of inline `diameterMm / 2.0` for clarity.
+
+### Added — PR4
+- `PlaneCutCalculator` in `:core/math`: implements `CutCalculator` for the
+  flat (non-saddle) cut case using `L(φ) = L₀ + R · tan(α) · cos(φ − β)`.
+  Validates input via `CutRequestValidator` and self-checks output via
+  `DevelopmentValidator`. Rejects saddle requests with a clear error.
+- Comprehensive numeric tests:
+  - Reference drawing case (D=114.3, α=28°, β=12°, L₀=100).
+  - Straight, classic-non-clocked, and extreme-tilt cases.
+  - Parameterized invariants over a (α, β, L₀) grid.
+  - Output-size coverage for every `PointCount` entry.
+
 ### Changed — PR3 (fixup)
 - `CutRequestValidator` and `DevelopmentValidator` now reject `Double.NaN`,
   `Double.POSITIVE_INFINITY`, and `Double.NEGATIVE_INFINITY` for every
