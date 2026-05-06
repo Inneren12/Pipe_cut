@@ -31,7 +31,6 @@ import kotlin.math.sqrt
  */
 object SaddleCutCalculator : CutCalculator {
 
-    private const val BISECTION_ITERATIONS = 60
     private const val ECCENTRIC_TOLERANCE_MM = 1e-12
 
     override fun calculate(request: CutRequest): Development {
@@ -130,29 +129,32 @@ object SaddleCutCalculator : CutCalculator {
         return l0 + (cosPart * cos(thetaRad) - sqrt(discriminant)) / sin(thetaRad)
     }
 
-    private fun distanceSquaredToMainAxis(
-        phiRad: Double,
-        psiRad: Double,
-        thetaRad: Double,
-        r1: Double,
-        e: Double,
-        l0: Double,
-        z: Double,
-    ): Double {
-        val angle = phiRad - psiRad
-        val px = r1 * cos(angle)
-        val py = r1 * sin(angle) - e
-        val pz = z - l0
-        val dx = sin(thetaRad)
-        val dy = 0.0
-        val dz = cos(thetaRad)
-        val dot = px * dx + py * dy + pz * dz
-        val ex = px - dot * dx
-        val ey = py - dot * dy
-        val ez = pz - dot * dz
-        return ex * ex + ey * ey + ez * ez
-    }
-
+    /**
+     * Closed-form solution of the branch-main intersection for the
+     * eccentric case.
+     *
+     * Working in w = z - l0 (so the main axis passes through (0, e, 0)
+     * in the shifted frame), the squared distance from the branch
+     * surface point at angle phi at axial coordinate z to the main axis
+     * is a quadratic in w:
+     *
+     *   sin²θ · w²
+     *     − 2·R₁·cos(φ−ψ)·sinθ·cosθ · w
+     *     + ( R₁²·cos²(φ−ψ)·cos²θ + (R₁·sin(φ−ψ) − e)² − R₂² )
+     *     = 0
+     *
+     * Both roots are real under the calculator's preconditions
+     * (`r1 + e ≤ r2` ensures every branch generatrix intersects the
+     * main cylinder). The lower root corresponds to the cut profile
+     * that sits between the open end face and the axes' intersection
+     * point — the same branch that the centered analytic formula
+     * picks. The upper root is the second intersection on the far side
+     * of the main pipe.
+     *
+     * Validator (PR3) forbids θ ≤ 0 and θ ≥ 180°, so sin²θ > 0 for
+     * every accepted request. Guarded explicitly so the failure mode is
+     * obvious if validators ever loosen.
+     */
     private fun offsetZ(
         phiRad: Double,
         psiRad: Double,
@@ -162,30 +164,31 @@ object SaddleCutCalculator : CutCalculator {
         e: Double,
         l0: Double,
     ): Double {
-        val zMax = r1 + r2 + abs(e)
-        var lo = l0 - zMax
-        var hi = l0
-
-        fun signedGap(z: Double): Double =
-            distanceSquaredToMainAxis(phiRad, psiRad, thetaRad, r1, e, l0, z) - r2 * r2
-
-        val gapLo = signedGap(lo)
-        val gapHi = signedGap(hi)
-        require(gapLo * gapHi <= 0.0) {
+        val angle = phiRad - psiRad
+        val cosPhi = cos(angle)
+        val sinPhi = sin(angle)
+        val sinT = sin(thetaRad)
+        val cosT = cos(thetaRad)
+        val a = sinT * sinT
+        require(a > 0.0) {
             "Invalid saddle geometry at phi=${Math.toDegrees(phiRad)}: " +
-                "no intersection in the expected half-bracket. Bracket signs: " +
-                "lo=$gapLo, hi=$gapHi."
+                "sin²θ is zero. Validator should have rejected θ=${Math.toDegrees(thetaRad)}°."
         }
-
-        repeat(BISECTION_ITERATIONS) {
-            val mid = (lo + hi) / 2.0
-            val gapMid = signedGap(mid)
-            if (gapMid * gapLo <= 0.0) {
-                hi = mid
-            } else {
-                lo = mid
-            }
+        val b = -2.0 * r1 * cosPhi * sinT * cosT
+        val perpY = r1 * sinPhi - e
+        val c = r1 * r1 * cosPhi * cosPhi * cosT * cosT + perpY * perpY - r2 * r2
+        val discriminant = b * b - 4.0 * a * c
+        require(discriminant >= 0.0) {
+            "Invalid saddle geometry at phi=${Math.toDegrees(phiRad)}: " +
+                "no real intersection (discriminant=$discriminant). " +
+                "This should be unreachable given r1+e ≤ r2."
         }
-        return (lo + hi) / 2.0
+        val sqrtDisc = sqrt(discriminant)
+        // Lower root in w (equivalently, lower z): coincides with the
+        // -sqrt branch of the centered formula and remains continuous as
+        // e → 0. Picking "nearest to l0" looks tempting but disagrees
+        // with `centeredZ` whenever cos(φ-ψ) < 0.
+        val w1 = (-b - sqrtDisc) / (2.0 * a)
+        return l0 + w1
     }
 }
