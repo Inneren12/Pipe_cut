@@ -33,6 +33,7 @@ enum class FieldKey {
     TILT,
     CLOCKING,
     OFFSET,
+    /** Included for uniform touched tracking; the dropdown cannot produce a parse or validation error. */
     POINT_COUNT,
     PARTNER_DIAMETER,
     INTERSECTION_ANGLE,
