@@ -30,24 +30,25 @@ class PresetsViewModel(
     private val _lastSaveError = MutableStateFlow<PresetSaveError?>(null)
     val lastSaveError: StateFlow<PresetSaveError?> = _lastSaveError.asStateFlow()
 
-    fun trySave(rawName: String, request: CutRequest?) {
+    fun trySave(rawName: String, request: CutRequest?, allowOverwrite: Boolean = false) {
         val name = rawName.trim()
-        val current = presets.value
-        val error: PresetSaveError? = when {
+        val preflight: PresetSaveError? = when {
             request == null -> PresetSaveError.NoValidRequest
             name.isEmpty() -> PresetSaveError.EmptyName
             name.length > MAX_NAME_LENGTH -> PresetSaveError.NameTooLong
-            current.any { it.name == name } -> PresetSaveError.NameAlreadyExists
-            current.size >= MAX_PRESETS -> PresetSaveError.LimitReached
             else -> null
         }
-        if (error != null) {
-            _lastSaveError.value = error
+        if (preflight != null) {
+            _lastSaveError.value = preflight
             return
         }
-        _lastSaveError.value = null
         viewModelScope.launch {
-            repository.save(request!!.toPreset(name))
+            val error = repository.saveIfAllowed(
+                preset = request!!.toPreset(name),
+                maxPresets = MAX_PRESETS,
+                allowOverwrite = allowOverwrite,
+            )
+            _lastSaveError.value = error
         }
     }
 

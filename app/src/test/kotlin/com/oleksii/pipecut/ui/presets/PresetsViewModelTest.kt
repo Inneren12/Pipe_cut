@@ -21,14 +21,35 @@ import org.junit.jupiter.api.Assertions.assertSame
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 
-private class FakePresetsRepository : PresetsRepository {
+private class SpyRepository(
+    private val returnError: PresetSaveError? = null,
+) : PresetsRepository {
     private val flow = MutableStateFlow<List<Preset>>(emptyList())
+    var saveIfAllowedCalls: Int = 0
+        private set
+    var lastAllowOverwrite: Boolean? = null
+        private set
+
     override fun observe(): Flow<List<Preset>> = flow
-    override suspend fun save(preset: Preset) {
-        flow.value = (flow.value.filter { it.name != preset.name } + preset).sortedBy { it.name }
+
+    override suspend fun saveIfAllowed(
+        preset: Preset,
+        maxPresets: Int,
+        allowOverwrite: Boolean,
+    ): PresetSaveError? {
+        saveIfAllowedCalls += 1
+        lastAllowOverwrite = allowOverwrite
+        if (returnError != null) return returnError
+        flow.value = (flow.value.filter { !it.name.equals(preset.name, ignoreCase = true) } + preset)
+            .sortedWith(compareBy(String.CASE_INSENSITIVE_ORDER) { it.name })
+        return null
     }
+
+    @Suppress("DEPRECATION")
+    override suspend fun save(preset: Preset) {}
+
     override suspend fun delete(name: String) {
-        flow.value = flow.value.filter { it.name != name }
+        flow.value = flow.value.filter { !it.name.equals(name, ignoreCase = true) }
     }
 }
 
@@ -49,53 +70,53 @@ class PresetsViewModelTest {
     )
 
     @Test
-    fun `trySave with empty name yields EmptyName error and saves nothing`() = runTest {
-        val repo = FakePresetsRepository()
+    fun `trySave with empty name fails preflight without touching repository`() = runTest {
+        val repo = SpyRepository()
         val vm = PresetsViewModel(repo)
         vm.trySave("   ", planeRequest())
         assertSame(PresetSaveError.EmptyName, vm.lastSaveError.value)
-        assertEquals(0, vm.presets.value.size)
+        assertEquals(0, repo.saveIfAllowedCalls)
     }
 
     @Test
-    fun `trySave with null request yields NoValidRequest`() = runTest {
-        val vm = PresetsViewModel(FakePresetsRepository())
+    fun `trySave with null request fails preflight without touching repository`() = runTest {
+        val repo = SpyRepository()
+        val vm = PresetsViewModel(repo)
         vm.trySave("alpha", null)
         assertSame(PresetSaveError.NoValidRequest, vm.lastSaveError.value)
+        assertEquals(0, repo.saveIfAllowedCalls)
     }
 
     @Test
-    fun `trySave with duplicate name yields NameAlreadyExists`() = runTest {
-        val repo = FakePresetsRepository()
+    fun `trySave with name longer than max fails preflight without touching repository`() = runTest {
+        val repo = SpyRepository()
         val vm = PresetsViewModel(repo)
-        vm.trySave("alpha", planeRequest())
-        vm.presets.first { it.size == 1 }
-        vm.trySave("alpha", planeRequest())
-        assertSame(PresetSaveError.NameAlreadyExists, vm.lastSaveError.value)
-    }
-
-    @Test
-    fun `trySave with name longer than max yields NameTooLong`() = runTest {
-        val vm = PresetsViewModel(FakePresetsRepository())
         vm.trySave("a".repeat(MAX_NAME_LENGTH + 1), planeRequest())
         assertSame(PresetSaveError.NameTooLong, vm.lastSaveError.value)
+        assertEquals(0, repo.saveIfAllowedCalls)
     }
 
     @Test
-    fun `trySave at MAX_PRESETS yields LimitReached`() = runTest {
-        val repo = FakePresetsRepository()
+    fun `trySave with valid input delegates to saveIfAllowed and surfaces its error`() = runTest {
+        val repo = SpyRepository(returnError = PresetSaveError.NameAlreadyExists)
         val vm = PresetsViewModel(repo)
-        repeat(MAX_PRESETS) { i ->
-            vm.trySave("name-$i", planeRequest())
-            vm.presets.first { it.size == i + 1 }
-        }
-        vm.trySave("overflow", planeRequest())
-        assertSame(PresetSaveError.LimitReached, vm.lastSaveError.value)
+        vm.trySave("alpha", planeRequest())
+        assertSame(PresetSaveError.NameAlreadyExists, vm.lastSaveError.value)
+        assertEquals(1, repo.saveIfAllowedCalls)
+        assertEquals(false, repo.lastAllowOverwrite)
+    }
+
+    @Test
+    fun `trySave with allowOverwrite forwards the flag to the repository`() = runTest {
+        val repo = SpyRepository()
+        val vm = PresetsViewModel(repo)
+        vm.trySave("alpha", planeRequest(), allowOverwrite = true)
+        assertEquals(true, repo.lastAllowOverwrite)
     }
 
     @Test
     fun `successful trySave clears the error`() = runTest {
-        val vm = PresetsViewModel(FakePresetsRepository())
+        val vm = PresetsViewModel(SpyRepository())
         vm.trySave("", planeRequest())
         assertSame(PresetSaveError.EmptyName, vm.lastSaveError.value)
         vm.trySave("alpha", planeRequest())
@@ -105,7 +126,7 @@ class PresetsViewModelTest {
 
     @Test
     fun `delete removes the preset`() = runTest {
-        val repo = FakePresetsRepository()
+        val repo = SpyRepository()
         val vm = PresetsViewModel(repo)
         vm.trySave("alpha", planeRequest())
         vm.presets.first { it.size == 1 }
