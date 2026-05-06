@@ -37,6 +37,25 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   - Saddle toggle with collapsible group of four saddle-only fields.
   - Decimal separator tolerance (accepts `,` and `.`).
 - JUnit 5 wired in `:app` for ViewModel and string-mapping tests.
+### Changed — PR5 (fixup 2)
+- `SaddleCutCalculator` eccentric solver replaced with a closed-form
+  quadratic solution. The previous bisection bracket
+  `[l0 − zMax, l0]` rejected geometrically valid acute-angle eccentric
+  requests where the intersection sits above `l0`. The closed-form
+  solver finds both roots globally and selects the lower one (the
+  `−sqrt` branch already chosen by the centered analytic formula).
+- New tests: oblique eccentric back-substitution
+  (θ = 62°, ψ = 30°, e = 20) and an acute-angle regression
+  (θ = 10°, partner Ø400, e = 10) that would have failed under the
+  bisection bracket.
+- `offset solver matches centered solver in the limit` test tolerance
+  tightened from `1e-6` to `1e-9` — the closed-form solver no longer
+  has bisection truncation. The fixture's eccentric offset is dropped
+  from `1e-6` to `1e-9` so the inherent O(e) drift between the
+  centered and offset formulations stays below the new tolerance.
+- CHANGELOG `### Added — PR5` preconditions bullet rewritten to
+  match the actual code (`R₁ + e > R₂`, not `R₁ > R₂ + e`).
+
 ### Changed — PR5 (fixup)
 - `SaddleCutCalculator` now rejects requests where `cut.tiltDeg` or
   `cut.clockingDeg` is non-zero. PR5 implements pure saddle geometry
@@ -57,8 +76,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   the saddle case (branch pipe fitted onto a partner cylinder).
   - Analytic solution for centered intersections (`saddle.offsetMm == 0`).
   - Bisection-based numeric solver for eccentric intersections.
-  - Plane-specific preconditions: rejects `R₂ < R₁`, `R₁ > R₂ + e`, and
-    `L₀ < min(z(φ))`.
+  - Geometry preconditions: rejects `R₂ < R₁`; rejects eccentric
+    full-360° cases where `R₁ + e > R₂`; rejects requests whose sampled
+    minimum generated length would be negative.
 - `CutCalculatorDispatcher` in `:core/math`: single entry point that
   routes to `PlaneCutCalculator` or `SaddleCutCalculator` based on
   `request.saddle`.
