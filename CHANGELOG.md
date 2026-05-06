@@ -6,6 +6,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added — PR3
+- Validation layer in `:core/validation`:
+  - `Validated<T>` sealed type with `Valid` / `Invalid` (accumulating errors).
+  - `ValidationError` sealed interface — typed catalog of every rule violation,
+    each variant carrying the offending value.
+  - `CutRequestValidator` — single-pass validator for `CutRequest` (pipe,
+    cut plane, optional saddle). Accumulates all errors.
+  - `DevelopmentValidator` — single-pass validator for calculator output
+    (non-empty, phi in [0, 360), non-negative length, strictly ascending phi).
+- Unit tests covering positive cases, every error variant, and error
+  accumulation for both validators.
+
 ### Added — PR2
 - Domain model in `:core/model`:
   - `PipeSpec` with derived `radiusMm` and `circumferenceMm`.
